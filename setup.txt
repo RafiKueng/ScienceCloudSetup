@@ -23,36 +23,51 @@ TOTAL                                  8.5 / 31
 
 # IP CONFIGURATION
 
-Internal network runs on: 10.0.0.0/16
-
-controller is DHCP server with fixed ip 
-
-
-10.0.0.1: controller
-  there is only one instance
+Internal network runs on:   10.0.0.0/16
+university only network on: 10.1.0.0/16
+Internet network:           10.2.0.0/16
 
 
-10.0.10.X: webserver
-  there might be more, but I only plan one for the moment.. This is basically a load balancer, so it shouldn't need to handle too much..
+
+10.0.0.1
+10.0.1.1: "controller"
+    there is only one instance
+
+10.0.1.254: gateway
+    gateway to hell uzh
+
+10.0.2.254: gateway
+    gateway to hell internet
 
 
-10.0.11.X: application server
+10.0.9.1
+10.2.9.1: "loadbalancer"
+    there might be more, but I only plan one for the moment.. This is basically a load balancer, so it shouldn't need to handle too much..
+
+
+10.0.10.X: "webserver"
+    This serves basic pages, introduction, homepage, tutorials, ...
+    serves files from
+    /var/www/labs.spacewarps.org
+
+
+10.0.11.X: "appserver" application server
   plan for multiple
 
 
-10.0.12.X: static file server
+10.0.12.X: "staticserver" static file server
   one will problably always be sufficent, but plan for multiple anyways
-  
 
-10.0.20.X: database server
+
+10.0.20.X: "dbserver" database server
   there will probably be more than one, but let another girl/guy worry about how to shard CouchDB.. the loadbalancer should probably be on .1 later..
 
 
-10.0.30.X: broker
+10.0.30.X: "broker" rabbitmq broker
   most certanly one broker will be sufficent forever.. 
   
   
-10.0.100.X: worker nodes
+10.0.99.X: "worker" worker nodes
   there will be multiple amounts of worker
 
 
@@ -70,7 +85,6 @@ default image: Debian 9.2
 # Controller:
 nginx serving admin and status pages
 
-- dhcp server
 - celery flower
 - rabbitmq status page
 - django admin page
@@ -129,22 +143,22 @@ download the rc v2 file from the website
 
 
 ## setup networks
+create net_internal, net_uzh and net_internet networks with according subnets
+internal has no gateway, others have gateway at .0.254
+all have dhcp range .254.1 -- .254.99 (dhcp is needed to be able to assign fixed ports!!!)
 
+net_internal    10.0.0.0/16
+net_uzh         10.1.0.0/16
+net_internet    10.2.0.0/16
 
 
 ## setup network ports
-get network info:
-```
-NETWORK=`openstack network list -f value | grep internal | cut --delimiter " " --fields 1`
-SUBNET=`openstack subnet list -f value | grep internal | cut --delimiter " " --fields 1`
-```
-
-attach ports to network
-```
-openstack port create --network ${NETWORK} --fixed-ip subnet=${SUBNET},ip-address=10.0.10.3 port.10.01_webserver-1
-```
+`./setup_scripts/openstack_create-ports.sh`
 
 
+# setup instances
+
+## setup controller
 
 
 

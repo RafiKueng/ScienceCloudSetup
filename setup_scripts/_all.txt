@@ -1,0 +1,23 @@
+ 
+sed -i 's/#alias ll/alias ll/g' ~/.bashrc
+sed -i 's/#alias la/alias la/g' ~/.bashrc
+
+sudo apt update
+sudo apt upgrade -y
+
+ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+
+# enable unattended upgrades
+# https://wiki.debian.org/UnattendedUpgrades
+sudo apt install unattended-upgrades apt-listchanges -y
+sudo dpkg-reconfigure -plow unattended-upgrades
+
+# add the pub key of the controller
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDHX/AcaeaUF90n9sHDAGR493MQ1ijGlBD96ANEHF8ba2HKaZ/9g0FafLJslb8IJq+DVCx1Cl+9NZrx4+HBcbE5HGHKdOlOuHRrE2uoHLZxVNLhIaoKfhoiYkb6MaxmtZchfqyiAJ+cDMasvJULk3He1rvIU6YGoJO9Jama334od5Tho3IDQAkVpefPcfFCYS3B09szZI3puiCYqs0pbVEDKl+88FnosE7/N6XPJK+GoVijCuqQnrWDjOMi1Wq3kqpsSwNhI+rc+PkIcNTFlDwqhrig2TumkFUUkqXMyLyFTS4KQzSYeCA9gRGe9BUshPZF5xp+hRnwWC2s2KkAgzAp debian@controller" >> ~/.ssh/authorized_keys
+
+# install some tools
+apt install \
+    curl \
+    -y
+
+sudo reboot

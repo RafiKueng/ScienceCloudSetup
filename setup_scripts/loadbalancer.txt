@@ -1,0 +1,71 @@
+#!/bin/bash
+
+#
+# loadbalancer setup script
+#
+
+
+# settings
+
+
+###########################################
+
+
+# install webserver / load balancer
+sudo apt install nginx -y
+
+# test webserver
+curl localhost
+
+# remove default page
+sudo rm /etc/nginx/sites-enabled/default
+
+cat <<EOT > /etc/nginx/sites-available/loadbalance.conf
+upstream webservers {
+    least_conn;
+    server 10.0.10.1;
+#    server 10.0.10.2;
+#    server 10.0.10.3;
+}
+
+upstream appservers {
+    least_conn;
+    server 10.0.11.1;
+#    server 10.0.11.2;
+#    server 10.0.11.3;
+}
+
+upstream staticservers {
+    least_conn;
+    server 10.0.12.1;
+#    server 10.0.12.2;
+#    server 10.0.12.3;
+}
+
+
+server {
+    listen 10.2.9.1:80;
+    listen 172.23.20.112:80; # for debug purposes only
+
+    # all static files
+    location /static {
+        proxy_pass http://staticservers;
+    }
+    
+    # all media files. they might exist, if not pass on to application!
+    location /media {
+        try_files $uri @dynamiccycletour
+    }
+    
+    
+    location / {
+        proxy_pass http://webservers;
+    }
+}
+EOT
+
+sudo ln -s /etc/nginx/sites-available/loadbalance.conf /etc/nginx/sites-enabled/loadbalance.conf
+
+
+# restart to reload config
+sudo systemctl restart nginx
