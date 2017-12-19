@@ -1,0 +1,87 @@
+# TODO
+
+- unattended upgrades
+
+
+
+
+
+
+# create ssh key pairs to connect to others
+create both for root and for the default user a ssh keypair
+we use this to connect to the other servers later..
+
+run as both users:
+```
+ssh-keygen
+```
+then copy the output of ```cat /home/debian/.ssh/id_rsa.pub``` into the keys in OpenStack configuration
+
+
+
+
+
+
+# change to fix ip:
+
+## disable automatic cloud ip assignment
+```
+cat <<EOT >> /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+network: {config: disabled}
+EOT
+```
+
+## delete eth0 entries in /etc/interfaces
+```
+sed -i '/eth0/d' /etc/network/interfaces
+```
+
+## setup static ip
+```
+cat <<EOT >> /etc/network/interfaces.d/eth0
+auto eth0
+iface eth0 inet static
+    address 10.0.0.1
+    netmask 255.255.0.0
+EOT
+```
+
+## same for eth1
+```
+sed -i '/eth1/d' /etc/network/interfaces
+```
+
+## setup static ip
+```
+cat <<EOT >> /etc/network/interfaces.d/eth1
+auto eth1
+iface eth1 inet static
+    address 10.1.0.1
+    netmask 255.255.0.0
+EOT
+```
+
+
+# setup dhcp and dns services
+
+## install service
+```
+apt install dnsmasq
+```
+
+## upload config files
+
+### hosts file
+because of cloud init stuff, we copy the hosts file to:
+/etc/cloud/templates/hosts.tmpl
+
+### ethers file
+/etc/ethers
+
+### load config files
+echo "conf-dir=/etc/dnsmasq.d/,*.conf" >> /etc/dnsmasq.conf
+
+### upload config file
+/etc/dnsmasq.d/controller.conf
+
+

@@ -1,0 +1,153 @@
+
+
+# overview
+
+
+controller          1 / 1 server    -> 0.5 /  1
+webserver           2 / 2 server    -> 1   /  2
+server_all          4 / 4 server    -> 2   /  4
+  - application server
+  - static file server
+  - broker
+  - database
+
+3 x
+worker node         2 / 8 hpc       -> 6   / 24
+
+------------------------------------------------
+TOTAL                                  8.5 / 31
+
+
+
+
+
+# IP CONFIGURATION
+
+Internal network runs on: 10.0.0.0/16
+
+controller is DHCP server with fixed ip 
+
+
+10.0.0.1: controller
+  there is only one instance
+
+
+10.0.10.X: webserver
+  there might be more, but I only plan one for the moment.. This is basically a load balancer, so it shouldn't need to handle too much..
+
+
+10.0.11.X: application server
+  plan for multiple
+
+
+10.0.12.X: static file server
+  one will problably always be sufficent, but plan for multiple anyways
+  
+
+10.0.20.X: database server
+  there will probably be more than one, but let another girl/guy worry about how to shard CouchDB.. the loadbalancer should probably be on .1 later..
+
+
+10.0.30.X: broker
+  most certanly one broker will be sufficent forever.. 
+  
+  
+10.0.100.X: worker nodes
+  there will be multiple amounts of worker
+
+
+10.0.254.X: temporary assigned by DHCP, openstack
+
+
+
+
+
+
+
+default image: Debian 9.2
+
+
+# Controller:
+nginx serving admin and status pages
+
+- dhcp server
+- celery flower
+- rabbitmq status page
+- django admin page
+
+
+
+# Webserver:
+
+nginx with php, setup load balancing
+serve local files (tutorials, ect...)
+
+application -> application server
+static files -> static file server
+
+
+
+# Application server:
+
+serve application with gunicorn
+
+
+
+
+# Static file server:
+
+serve static files with nginx
+
+
+# Broker:
+rabbitmq
+
+
+# Database:
+couchdb
+
+
+# Worker Node:
+celeryd
+http://docs.celeryproject.org/en/latest/userguide/daemonizing.html#usage-systemd
+
+
+
+
+
+
+
+# setup openstack
+
+## install CLI interface
+install it: `pip install python-openstackclient`
+
+(there should be no need for the other clients, only use `openstack`
+
+download the rc v2 file from the website
+
+
+
+## setup networks
+
+
+
+## setup network ports
+get network info:
+```
+NETWORK=`openstack network list -f value | grep internal | cut --delimiter " " --fields 1`
+SUBNET=`openstack subnet list -f value | grep internal | cut --delimiter " " --fields 1`
+```
+
+attach ports to network
+```
+openstack port create --network ${NETWORK} --fixed-ip subnet=${SUBNET},ip-address=10.0.10.3 port.10.01_webserver-1
+```
+
+
+
+
+
+
+
+

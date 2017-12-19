@@ -1,0 +1,42 @@
+## LOCAL NET
+
+#
+# The whole system runs in 10.0.0.0/16
+# and is actually configured in OpenStack
+#
+
+
+#  IP           DOMAIN              NAME            COMMENT
+
+10.0.0.1        controller.lan      controller      # 
+
+10.0.10.1       webserver-1.lan     webserver-1     #
+10.0.10.2       webserver-2.lan     webserver-2     #
+10.0.10.3       webserver-3.lan     webserver-3     #
+
+10.0.11.1       appserver-1.lan     appserver-1     #
+10.0.11.2       appserver-2.lan     appserver-2     #
+10.0.11.3       appserver-3.lan     appserver-3     #
+10.0.11.4       appserver-4.lan     appserver-4     #
+10.0.11.5       appserver-5.lan     appserver-5     #
+
+10.0.12.1       staticserver-1.lan  staticserver-1  #
+10.0.12.2       staticserver-2.lan  staticserver-2  #
+
+10.0.20.1       dbserver-1.lan      dbserver-1      #
+10.0.20.2       dbserver-2.lan      dbserver-2      #
+10.0.20.3       dbserver-3.lan      dbserver-3      #
+
+10.0.30.1       broker-1.lan        broker-1        #
+10.0.30.2       broker-2.lan        broker-2        #
+10.0.30.3       broker-3.lan        broker-3        #
+
+10.0.99.1       worker-1.lan        worker-1        #
+10.0.99.2       worker-2.lan        worker-2        #
+10.0.99.3       worker-3.lan        worker-3        #
+10.0.99.4       worker-4.lan        worker-4        #
+10.0.99.5       worker-5.lan        worker-5        #
+10.0.99.6       worker-6.lan        worker-6        #
+10.0.99.7       worker-7.lan        worker-7        #
+10.0.99.8       worker-8.lan        worker-8        #
+10.0.99.9       worker-9.lan        worker-9        #
