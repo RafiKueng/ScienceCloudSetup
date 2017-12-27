@@ -54,13 +54,17 @@ Internet network:           10.2.0.0/16
     /var/www/labs.spacewarps.org
 
 
-10.0.11.X: "appserver" application server
-  plan for multiple
-
-
-10.0.12.X: "staticserver" static file server
+10.0.11.X: "staticserver" static file server
   one will problably always be sufficent, but plan for multiple anyways
 
+
+10.0.20.X: "appserver-spl" application server for spaghettilens
+  plan for multiple
+
+10.0.21.X: "appserver-SomeOtherApp" application server for SomeOtherApp
+  plan for multiple
+
+...
 
 10.0.20.X: "dbserver" database server
   there will probably be more than one, but let another girl/guy worry about how to shard CouchDB.. the loadbalancer should probably be on .1 later..
