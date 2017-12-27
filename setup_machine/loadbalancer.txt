@@ -10,6 +10,9 @@
 
 ###########################################
 
+# execute the default script
+. _all.sh
+
 
 # install webserver / load balancer
 sudo apt install nginx -y

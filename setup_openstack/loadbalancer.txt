@@ -1,0 +1,16 @@
+# How to setup the loadbalancer instance in the openstack interface
+
+## create instance
+- default system
+- assign net_internal port 10.0.9.1
+- assign uzh-only for debug
+- assign net_internet 10.2.9.1
+- assign floating public ip [https://s3itwiki.uzh.ch/display/clouddoc/Networking+options]
+
+
+## apply firewall
+- create security group `secgrp_internet`
+- secgrp_internet > Mange Rules
+- Add Rule
+- http; CIDR; 0.0.0.0/0 [igress port 80 from everywhere]
+- assign secgrp_internet to instance
