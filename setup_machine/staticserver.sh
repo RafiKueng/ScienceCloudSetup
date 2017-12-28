@@ -30,6 +30,12 @@ server {
     
     root /var/www/labs.spacewarps.org-static;
 
+    # special entry for testing purposes only
+    location /static/_staticserver_test.tmp {
+        return 200 'staticserver running';
+        add_header Content-Type text/plain;
+    }
+
     location / {
         try_files \$uri \$uri/ =404;
     }

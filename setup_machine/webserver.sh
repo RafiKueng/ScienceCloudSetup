@@ -28,7 +28,13 @@ cat <<EOT > /etc/nginx/sites-available/webserver-${NR}.conf
 server {
     listen ${IP}:80;
     # listen 172.23.20.112:8080; # for debug purposes only
-    
+
+    # special entry for testing purposes only
+    location /_webserver_test.tmp {
+        return 200 'webserver running';
+        add_header Content-Type text/plain;
+    }
+
     root /var/www/labs.spacewarps.org;
 
     location / {

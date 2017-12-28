@@ -24,9 +24,37 @@ echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDHX/AcaeaUF90n9sHDAGR493MQ1ijGlBD96A
 echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCipG5ahA0FX+mF7HyzaPaxLVsUY3ImX2N1zcoEhcSJXqYthkF/Rp+Oh2vn6kd+M+gAXtg+XGglzqBWgTf5LRbPc+FZAaZSVo4JVnmxCI5hwdwm0KiBvdU+tbgRAtqaO9yn16lfd6vp/WVlQfjRVc9TpziZboj9E1h/6Tc2M01Ctgd7D1dsR+VM/p8n+1xQWvUZiNjEQRU6nwx+eyhZt+Gcm5ZzwpSXAkX30NKkjGQyrOwpG0KVJvtdf3oiMuajbLPFj4ZgaUF6NSrjX9q1iBjyrCi9G9sWRpIMlFpo8sOVntZSf5zxaIHNQ8AE0xlqiTWAaYTpEGceFoN+2JOcGhU/ rafik@homecomputer" >> ~/.ssh/authorized_keys
 
 
+# enable additional network interfaces
+cat <<EOT > /etc/network/interfaces.d/additionalifs
+
+# lets add some more to be on the save side
+allow-hotplug eth3
+iface eth3 inet dhcp
+
+allow-hotplug eth4
+iface eth4 inet dhcp
+
+allow-hotplug eth5
+iface eth5 inet dhcp
+
+allow-hotplug eth6
+iface eth6 inet dhcp
+
+allow-hotplug eth7
+iface eth7 inet dhcp
+
+allow-hotplug eth8
+iface eth8 inet dhcp
+
+allow-hotplug eth9
+iface eth9 inet dhcp
+EOT
+
 # install some tools
 sudo apt install -y \
     curl \
 
 
+
+    
 sudo reboot

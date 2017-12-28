@@ -64,9 +64,15 @@ upstream SomeOtherAppProxy {
 
 
 server {
-    listen 10.2.1.1:80;
-    listen 172.23.20.112:80; # for debug purposes only
+    listen 10.0.1.1:80; # also listen internally, for debug purposes
+    listen 10.2.1.1:80; # but mainly listen on the external interface
 
+    # special entry for testing
+    location /_loadbalancer_test.tmp {
+        return 200 'loadbalancer running'
+        add_header Content-Type text/plain;
+    }
+    
     # all static files are collected on one server
     location /static {
         proxy_pass http://StaticServers;
