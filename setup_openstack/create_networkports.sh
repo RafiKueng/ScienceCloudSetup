@@ -1,115 +1,146 @@
+#!/bin/bash
 
-NETWINT=`openstack network list -f value | grep net_internal | cut --delimiter " " --fields 1`
-SNETINT=`openstack subnet list -f value | grep net_internal | cut --delimiter " " --fields 1`
+#
+# This script creates the network ports later to attach to to machines
+#
+# can be run multiple times, since already existing ports will not been regenerated
+#
 
-NETWUZH=`openstack network list -f value | grep net_uzh | cut --delimiter " " --fields 1`
-SNETUZH=`openstack subnet list -f value | grep net_uzh | cut --delimiter " " --fields 1`
 
-NETWEXT=`openstack network list -f value | grep net_internet | cut --delimiter " " --fields 1`
-SNETEXT=`openstack subnet list -f value | grep net_internet | cut --delimiter " " --fields 1`
 
+# load central ip settings
+. ../settings/ips.sh
+. ../settings/networks.sh
+
+
+
+create_port () {
+    local IP=$1
+
+    local ADDR=(${IP//./ })
+    local IP0=${ADDR[0]}
+    local IP1=${ADDR[1]}
+    local IP2=${ADDR[2]}
+    local IP3=${ADDR[3]}
+    local IP00=$(printf "%01d" $IP0)
+    local IP01=$(printf "%01d" $IP1)
+    local IP02=$(printf "%02d" $IP2)
+    local IP03=$(printf "%03d" $IP3)
+    local NETNAME=${3:4:3}
+
+    local NAME="port-${IP01}.${IP02}.${IP03} $2 @${NETNAME}"
+
+    declare -a NETS=("${!3}")
+    local NET=${NETS[0]}
+    local SNET=${NETS[1]}
+
+    local T=$'\t'
+    
+    echo " > creating IP:${IP} $T named: ${NAME} $T in: ${NET:0:6} / ${SNET:0:6}"
+    openstack port create --network ${NET} --fixed-ip subnet=${SNET},ip-address=${IP} "${NAME}"
+}
+
+
+echo "CREATE NETWORK PORTS"
+
+
+# CONTROLLER AND ADMIN AREA
+###############################################################################
 
 # controller
-
-IP="10.0.0.1"
-echo " > creating ${IP} ${NAME}"
-NAME="port.0.00.01 - controller @int"
-openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
-
-IP="10.1.0.1"
-echo " > creating ${IP} ${NAME}"
-NAME="port.1.00.01 - controller @uzh"
-openstack port create --network ${NETWUZH} --fixed-ip subnet=${SNETUZH},ip-address=${IP} "${NAME}"
+create_port "${PFX_INT}.${SUBIP_CONTROLLER}.1" "controller" NET_INT[@]
+create_port "${PFX_UZH}.${SUBIP_CONTROLLER}.1" "controller" NET_UZH[@]
 
 
 # load balancer
-
-IP="10.0.9.1"
-NAME="port.0.09.01 - loadbalancer @int"
-echo " > creating ${IP} ${NAME}"
-openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
-
-IP="10.2.9.1"
-NAME="port.2.09.01 - loadbalancer @ext"
-echo " > creating ${IP} ${NAME}"
-openstack port create --network ${NETWEXT} --fixed-ip subnet=${SNETEXT},ip-address=${IP} "${NAME}"
+create_port "${PFX_INT}.${SUBIP_LOADBALANCER}.1" "loadbalancer" NET_INT[@]
+create_port "${PFX_EXT}.${SUBIP_LOADBALANCER}.1" "loadbalancer" NET_EXT[@]
 
 
-# webserver
+# DATABASES
+###############################################################################
 
-for N in 1 2 3; do
+# CouchDBserver
+for ((N=1;N<=N_COUCHDBSERVER;++N)); do
     NN=$(printf "%02d" $N)
-
-    IP="10.0.10.${N}"
-    NAME="port.0.10.${NN} - webserver-${NN} @int"
-    echo " > creating ${IP} ${NAME}"
-    openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
+    create_port "${PFX_INT}.${SUBIP_COUCHDBSERVER}.${N}" "couchdbserver-${NN}" NET_INT[@]
 done
 
 
-# appserver
+# MariaDBserver
+# for ((N=1;N<=N_MARIADBSERVER;++N)); do
+#     NN=$(printf "%02d" $N)
+#     create_port "${PFX_INT}.${SUBIP_MARIADBSERVER}.${N}" "mariadbserver-${NN}" NET_INT[@]
+# done
 
-for N in 1 2 3; do
+# WEBSERVERS
+###############################################################################
+
+# WebServer
+for ((N=1;N<=N_WEBSERVER;++N)); do
     NN=$(printf "%02d" $N)
-
-    IP="10.0.11.${N}"
-    NAME="port.0.11.${NN} - appserver-${NN} @int"
-    echo " > creating ${IP} ${NAME}"
-    openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
+    create_port "${PFX_INT}.${SUBIP_WEBSERVER}.${N}" "webserver-${NN}" NET_INT[@]
 done
 
 
-# staticserver
-
-for N in 1 2 3; do
+# StaticServer
+for ((N=1;N<=N_STATICSERVER;++N)); do
     NN=$(printf "%02d" $N)
+    create_port "${PFX_INT}.${SUBIP_STATICSERVER}.${N}" "staticserver-${NN}" NET_INT[@]
+done
 
-    IP="10.0.12.${N}"
-    NAME="port.0.12.${NN} - staticserver-${NN} @int"
-    echo " > creating ${IP} ${NAME}"
-    openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
+
+# RabbitMQ Broker
+for ((N=1;N<=N_RABBITMQBROKER;++N)); do
+    NN=$(printf "%02d" $N)
+    create_port "${PFX_INT}.${SUBIP_RABBITMQBROKER}.${N}" "rabbitmqbroker-${NN}" NET_INT[@]
 done
 
 
 
-# dbserver
+# SpL APPLICATION - 1X
+###############################################################################
 
-for N in 1; do
+# SPL ProxyServer
+for ((N=1;N<=N_SPL_PROXY;++N)); do
     NN=$(printf "%02d" $N)
-
-    IP="10.0.20.${N}"
-    NAME="port.0.20.${NN} - dbserver-${NN} @int"
-    echo " > creating ${IP} ${NAME}"
-    openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
-done
-
-
-# broker
-
-for N in 1; do
-    NN=$(printf "%02d" $N)
-
-    IP="10.0.30.${N}"
-    NAME="port.0.30.${NN} - broker-${NN} @int"
-    echo " > creating ${IP} ${NAME}"
-    openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
-done
-
-
-# worker nodes
-
-for N in {1..16}; do
-    NN=$(printf "%02d" $N)
-    IP="10.0.99.${N}"
-    NAME="port.0.99.${NN} - worker-${NN} @int"
-    echo " > creating ${IP} ${NAME}"
-    openstack port create --network ${NETWINT} --fixed-ip subnet=${SNETINT},ip-address=${IP} "${NAME}"
+    create_port "${PFX_INT}.${SUBIP_SPL_PROXY}.${N}" "spl-proxy-${NN}" NET_INT[@]
 done
 
 
 
+# SPL ApplicationServer
+for ((N=1;N<=N_SPL_PROXY;++N)); do
+    NN=$(printf "%02d" $N)
+    create_port "${PFX_INT}.${SUBIP_SPL_APPSERVER}.${N}" "spl-appserver-${NN}" NET_INT[@]
+done
+
+# SPL MediaProxy
+for ((N=1;N<=N_SPL_MEDIAPROXY;++N)); do
+    NN=$(printf "%02d" $N)
+    create_port "${PFX_INT}.${SUBIP_SPL_MEDIAPROXY}.${N}" "spl-mediaproxy-${NN}" NET_INT[@]
+done
+
+# SPL MediaServer
+for ((N=1;N<=N_SPL_MEDIASERVER;++N)); do
+    NN=$(printf "%02d" $N)
+    create_port "${PFX_INT}.${SUBIP_SPL_MEDIASERVER}.${N}" "spl-mediaserver-${NN}" NET_INT[@]
+done
+
+# SPL WorkerNodes
+for ((N=1;N<=N_SPL_WORKERNODES;++N)); do
+    NN=$(printf "%02d" $N)
+    create_port "${PFX_INT}.${SUBIP_SPL_WORKERNODES}.${N}" "spl-workernode-${NN}" NET_INT[@]
+done
 
 
+
+# OtherApp APPLICATION - 2X
+###############################################################################
+
+#
+# none yet available, write one!
+#
 
 
 

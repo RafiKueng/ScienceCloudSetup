@@ -1,0 +1,21 @@
+
+# Either: create new instance
+# [todo]
+# SERVERNAME=""
+
+# or: use existing one
+SERVERNAME="server-combi"
+
+
+
+# get the instance
+SERVER_ID=`openstack server list -f value | grep ${SERVERNAME} | cut --delimiter " " --fields 1`
+
+# Add the port
+PORT_ID=`openstack port list -f value | grep staticserver | cut --delimiter " " --fields 1`
+openstack add port ${SERVER_ID} ${PORT_ID}
+
+
+
+# add security group 'secgrp_intern'
+# TODO

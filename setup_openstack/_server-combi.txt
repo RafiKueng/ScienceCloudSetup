@@ -1,0 +1,9 @@
+#
+# This is an example of a compi server that unifies most of the services...
+#
+
+
+## basic setup
+ - 4 / 4 server flavour
+ 
+ 

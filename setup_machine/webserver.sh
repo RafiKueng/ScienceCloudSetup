@@ -7,7 +7,7 @@
 
 ### settings ##################################################################
 
-IP="10.0.10.1"
+IP="10.0.5.1"
 NR="01"
 
 ###############################################################################
@@ -27,7 +27,7 @@ sudo rm /etc/nginx/sites-enabled/default
 cat <<EOT > /etc/nginx/sites-available/webserver-${NR}.conf
 server {
     listen ${IP}:80;
-    listen 172.23.20.112:8080; # for debug purposes only
+    # listen 172.23.20.112:8080; # for debug purposes only
     
     root /var/www/labs.spacewarps.org;
 
@@ -38,6 +38,15 @@ server {
 EOT
 
 sudo ln -s /etc/nginx/sites-available/webserver-${NR}.conf /etc/nginx/sites-enabled/webserver-${NR}.conf
+
+
+#
+# Checkout the webserver content
+mkdir -p /var/www/labs.spacewarps.org
+cd /var/www/labs.spacewarps.org
+cat <<EOT > index.html
+<html><body>test</body></html>
+EOT
 
 
 # restart to reload config

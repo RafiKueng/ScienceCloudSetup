@@ -32,51 +32,83 @@ Internet network:           10.2.0.0/16
 ```
 
 ```
+# q.r.0X.t Controller / Admin Area
+
 10.0.0.1
-10.0.1.1: "controller"
+10.1.0.1: "controller"
     there is only one instance
 
-10.0.1.254: gateway
+10.1.0.254: gateway
     gateway to hell uzh
 
-10.0.2.254: gateway
+10.2.0.254: gateway
     gateway to hell internet
 
 
-10.0.9.1
-10.2.9.1: "loadbalancer"
+10.0.1.1
+10.2.1.1: "LoadBalancer"
+    Use HAproxy for this
+    no we use nginx here as well for the moment
     there might be more, but I only plan one for the moment.. This is basically a load balancer, so it shouldn't need to handle too much..
 
 
-10.0.10.X: "webserver"
+10.0.2.X: "CouchDBServer" database server
+    there will probably be more than one, but let another girl/guy worry about how to shard CouchDB.. the loadbalancer should probably be on .1 later..
+ 
+
+10.0.3.X: "MariaDBServer" database server
+    At some point we might need one, but
+    DONT USE IT FOR THE MOMENT
+
+
+10.0.5.X: "WebServer"
+    use nginx
     This serves basic pages, introduction, homepage, tutorials, ...
     serves files from
-    /var/www/labs.spacewarps.org
+    /www/labs
 
 
-10.0.11.X: "staticserver" static file server
-  one will problably always be sufficent, but plan for multiple anyways
+10.0.6.X: "StaticServer"
+    This serves static files from applications
+    /www/static
 
 
-10.0.20.X: "appserver-spl" application server for spaghettilens
-  plan for multiple
-
-10.0.21.X: "appserver-SomeOtherApp" application server for SomeOtherApp
-  plan for multiple
-
-...
-
-10.0.20.X: "dbserver" database server
-  there will probably be more than one, but let another girl/guy worry about how to shard CouchDB.. the loadbalancer should probably be on .1 later..
-
-
-10.0.30.X: "broker" rabbitmq broker
+10.0.9.X: "RabbitMQBroker"
   most certanly one broker will be sufficent forever.. 
-  
-  
-10.0.99.X: "worker" worker nodes
-  there will be multiple amounts of worker
 
+
+
+# q.r.1X.t SpL AREA
+
+10.0.10.X: "SpL-proxy" Initital ProxyServer for SpaghettiLens
+    
+
+
+10.0.11.X: "SpL-appserver" application server for spaghettilens
+    plan for multiple
+
+
+10.0.12.X: "SpL-mediaproxy"
+    saves and serves the rendered media
+    Actually only mounts an NFS share, or maybe a SWIFT container if available
+    
+    
+10.0.13.X: "SpL-mediaserver"
+    backend storage of media files, attach large volume here and share if using NFS
+    not needed if SWIFT works
+    
+
+10.0.19.X: "SpL-worker" worker nodes
+    there will be multiple amounts of worker
+
+
+# q.r.2X.t SomeOtherApp AREA
+
+10.0.20.X: "SomeOtherApp-proxy" application server for SomeOtherApp
+    ...
+
+
+# q.r.2X.t SomeOtherApp AREA
 
 10.0.254.X: temporary assigned by DHCP, openstack
 ```

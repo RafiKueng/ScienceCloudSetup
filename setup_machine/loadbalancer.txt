@@ -8,6 +8,10 @@
 # settings
 
 
+# include IP config
+# . ../settings/ips.sh # use hardcoded ips for now...
+
+
 ###########################################
 
 # execute the default script
@@ -24,45 +28,63 @@ curl localhost
 sudo rm /etc/nginx/sites-enabled/default
 
 cat <<EOT > /etc/nginx/sites-available/loadbalance.conf
-upstream webservers {
+
+#
+# Initial Load Balancer Setup
+#
+
+upstream StaticServers {
+    least_conn;
+    server 10.0.6.1;
+#    server 10.0.6.2;
+#    server 10.0.6.3;
+}
+
+upstream WebServers {
+    least_conn;
+    server 10.0.5.1;
+#    server 10.0.5.2;
+#    server 10.0.5.3;
+}
+
+upstream SpLProxy {
     least_conn;
     server 10.0.10.1;
 #    server 10.0.10.2;
 #    server 10.0.10.3;
 }
 
-upstream appservers {
+upstream SomeOtherAppProxy {
     least_conn;
-    server 10.0.11.1;
-#    server 10.0.11.2;
-#    server 10.0.11.3;
+    server 10.0.20.1;
+#    server 10.0.20.2;
+#    server 10.0.20.3;
 }
 
-upstream staticservers {
-    least_conn;
-    server 10.0.12.1;
-#    server 10.0.12.2;
-#    server 10.0.12.3;
-}
 
 
 server {
-    listen 10.2.9.1:80;
+    listen 10.2.1.1:80;
     listen 172.23.20.112:80; # for debug purposes only
 
-    # all static files
+    # all static files are collected on one server
     location /static {
-        proxy_pass http://staticservers;
+        proxy_pass http://StaticServers;
     }
     
-    # all media files. they might exist, if not pass on to application!
-    location /media {
-        try_files $uri @dynamiccycletour
+    # The SpaghettiLens Application is hosted here:
+    location /SpL {
+        proxy_pass http://SpLProxy;
     }
     
+#    # Add dome Other App here
+#    location /SomeOtherApp {
+#        proxy_pass http://SomeOtherAppProxy;
+#    }
     
+    # Basic Webserver stuff
     location / {
-        proxy_pass http://webservers;
+        proxy_pass http://WebServers;
     }
 }
 EOT
