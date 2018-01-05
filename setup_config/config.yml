@@ -1,0 +1,100 @@
+
+
+
+machines:   # name them after moons of saturn for example
+  
+  # the controller node
+  saturn:   &saturn 
+    host:   saturn
+    ip:     10.0.0.1
+
+  # multi server node
+  titan:    &titan 
+    host:   titan
+    ip:     10.0.0.5
+  
+  # webserver / web facing node
+  mimas:    &mimas
+    host:   mimas
+    ip:     10.0.0.3
+
+
+
+worker_nodes:
+  name:     'moon-%02s'
+  ip_base:  10.0.99.
+  n_max:    3
+  n_min:    3 # this is not yet implemented!
+
+#
+# define the FUNCTIONS.
+# one machine can run multiple functions
+#
+functions:
+
+  # the controller functions are special!
+  flower:
+    <<:     *saturn
+    port:   8081
+
+  status-rabbitmq:
+    <<:     *saturn
+    port:   8082
+  
+  redirect-django-admin:
+    <<:     *saturn
+    port:   8083
+    
+  redirect-couchdb-futon:
+    <<:     *saturn
+    port:   8084
+
+
+
+  loadbalancer:
+    <<:       *mimas
+    port:     80
+    
+  couchdbserver:
+    <<:       *titan
+    port:     80
+
+  mariadbserver:
+    <<:       *titan
+    port:     80
+    
+
+  webserver:
+    <<:       *mimas
+    port:     80
+
+  staticserver:
+    <<:       *titan
+    port:     80
+    
+  mediaserver:
+    <<:       *titan
+    port:     80
+
+    
+  rabbitmqbroker:
+    <<:       *titan
+    port:     80
+  
+    
+  appserver:
+    <<:       *titan
+    port:     80
+
+
+
+#
+# this is only a shortcut for easy install
+#
+functiongroups:
+  controller:
+    - flower
+    - status-rabbitmq
+    - redirect-django-admin
+    - redirect-couchdb-futon
+
