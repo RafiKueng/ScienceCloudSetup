@@ -1,30 +1,81 @@
 
 
 
-machines:   # name them after moons of saturn for example
-  
-  # the controller node
-  saturn:   &saturn 
-    host:   saturn
-    ip:     10.0.0.1
-
-  # multi server node
-  titan:    &titan 
-    host:   titan
-    ip:     10.0.0.5
-  
-  # webserver / web facing node
-  mimas:    &mimas
-    host:   mimas
-    ip:     10.0.0.3
+# we connect to the physics network first
+# then connect to the controller host,
+# then to the particular machine.
+#
+# we expect ssh autologin using keyfiles!
+#
+conntection_settings:
+    physics_host:       taurus.physik.uzh.ch
+    controller_host:    172.0.0.0
 
 
+networks:
+    internal:       &netInternal
+        name:           net_intern
+        iprange:        10.0.0.0
+        subnet:         255.255.0.0
+        sn_pfx:         /16
+    university:     &netUzh
+        name:           net_uzh
+        iprange:        10.1.0.0
+        subnet:         255.255.0.0
+        sn_pfx:         /16
+    external:       &netExternal
+        name:           net_extern
+        iprange:        10.2.0.0
+        subnet:         255.255.0.0
+        sn_pfx:         /16
 
-worker_nodes:
-  name:     'moon-%02s'
-  ip_base:  10.0.99.
-  n_max:    3
-  n_min:    3 # this is not yet implemented!
+
+# servers = actual vm
+# make sure that the identifier and hostname are the same!
+# we name them after moons of saturn for example
+servers:   
+
+    # the controller node
+    saturn:   &saturn 
+        host:   saturn
+        networks:
+            int:
+                <<: *netInternal
+                ip: 10.0.0.1
+            uzh:
+                <<: *netUzh
+                ip: 10.1.0.1
+
+    # webserver / web facing node
+    mimas:    &mimas
+        host:   mimas
+        networks:
+            int:
+                <<: *netInternal
+                ip: 10.0.1.1
+            ext:
+                <<: *netExternal
+                ip: 10.2.1.1
+
+    # multi server node
+    titan:    &titan 
+        host:   titan
+        networks:
+            int:
+                <<: *netInternal
+                ip: 10.0.2.1
+
+    # worker nodes
+    moon:  &moon
+        host:     'moon-%02s'
+        n_max:    3
+        n_min:    3 # this is not yet implemented!
+        networks:
+            int:
+                <<: *netInternal
+                ip: 10.0.99.%i
+                
+
 
 #
 # define the FUNCTIONS.
@@ -32,69 +83,79 @@ worker_nodes:
 #
 functions:
 
-  # the controller functions are special!
-  flower:
-    <<:     *saturn
-    port:   8081
-
-  status-rabbitmq:
-    <<:     *saturn
-    port:   8082
-  
-  redirect-django-admin:
-    <<:     *saturn
-    port:   8083
+    # CONTROLLER
     
-  redirect-couchdb-futon:
-    <<:     *saturn
-    port:   8084
+    # basic controller allows ssh to other machines..
+    basiccontroller:
+        <<:     *saturn
+
+    flower:
+        <<:     *saturn
+        port:   8081
+
+    status-rabbitmq:
+        <<:     *saturn
+        port:   8082
+
+    redirect-django-admin:
+        <<:     *saturn
+        port:   8083
+
+    redirect-couchdb-futon:
+        <<:     *saturn
+        port:   8084
 
 
 
-  loadbalancer:
-    <<:       *mimas
-    port:     80
-    
-  couchdbserver:
-    <<:       *titan
-    port:     80
+    loadbalancer:
+        <<:     *mimas
+        port:   80
 
-  mariadbserver:
-    <<:       *titan
-    port:     80
-    
+    couchdbserver:
+        <<:     *titan
+        port:   80
 
-  webserver:
-    <<:       *mimas
-    port:     80
+    mariadbserver:
+        <<:     *titan
+        port:   80
 
-  staticserver:
-    <<:       *titan
-    port:     80
-    
-  mediaserver:
-    <<:       *titan
-    port:     80
 
-    
-  rabbitmqbroker:
-    <<:       *titan
-    port:     80
-  
-    
-  appserver:
-    <<:       *titan
-    port:     80
+    webserver:
+        <<:     *mimas
+        port:   80
 
+    staticserver:
+        <<:     *titan
+        port:   80
+
+    mediaserver:
+        <<:     *titan
+        port:   80
+
+
+    rabbitmqbroker:
+        <<:     *titan
+        port:   80
+
+
+    appserver:
+        <<:     *titan
+        port:   80
+        
+
+        
+    worker:
+        <<:     *moon
+        port:   80
 
 
 #
 # this is only a shortcut for easy install
 #
 functiongroups:
-  controller:
-    - flower
-    - status-rabbitmq
-    - redirect-django-admin
-    - redirect-couchdb-futon
+    controller:
+        - flower
+        - status-rabbitmq
+        - redirect-django-admin
+        - redirect-couchdb-futon
 

@@ -23,6 +23,7 @@ __license__ = "License"
 
 import sys
 import os
+import pprint as PPrint
 from pprint import pprint
 import logging
 import argparse
@@ -35,9 +36,22 @@ import unittest
 import string
 import collections
 import re
+import importlib
+from tempfile import NamedTemporaryFile
+import subprocess
+
 
 reload(logging)
-logger = logging.getLogger(__appname__)
+LOG = logging.getLogger(__appname__)
+
+folders={
+    'modules': 'install_modules',
+    'machine': 'machineinstall_scripts',
+    'openstack': 'openstacksetup_scripts',
+    'tests' : 'test_functions'
+}
+
+
 
 
 #def main(args):
@@ -47,7 +61,18 @@ logger = logging.getLogger(__appname__)
     
     #pprint(install_funcs)
     
-
+class Tmpl_CMDs(object):
+    
+    def __init__(self):
+        pass
+    
+    def __call__(self, cmd, args=[]):
+        return getattr(self,cmd)(args)
+        
+    def include(self,args):
+        return "INCLUDING FILE"
+            
+        
 def template_engine(txt, config):
     """
     a simple template engine that does basically what
@@ -69,6 +94,7 @@ def template_engine(txt, config):
     regex = re.compile("\$\{[a-zA-Z_0-9.\-]+\}")
     
     lookup = {}
+    CMDs = Tmpl_CMDs()
     
     def create_lookup(config, pfx=""):
         
@@ -80,16 +106,17 @@ def template_engine(txt, config):
                     npfx=pfx+'.'+k
                 create_lookup(v, pfx=npfx)
         elif isinstance(config, list):
-            lookup[pfx] = '[' + ", ".join(config) + ']'
-            #for k in config:
-                ## print pfx+'.'+k+"  : none"
-                #lookup[pfx+'.'+k] = ""
+            #lookup[pfx] = '[' + ", ".join(config) + ']'
+            for i,k in enumerate(config):
+                npfx=pfx+'.'+str(i)
+                create_lookup(k, pfx=npfx)
         else:
             # print pfx+" : "+str(config)
             lookup[pfx] = config
     
     create_lookup(config)
-    pprint(lookup)
+    LOG.info("CONFIG LOOKUP TABLE:")
+    LOG.info(PPrint.pformat(lookup, indent=2))
     
     def replace(sre_match):
         ostr = sre_match.group()
@@ -98,18 +125,31 @@ def template_engine(txt, config):
 
         if key in lookup.keys():
             return str(lookup[key])
+        elif key[0] == "!": # special command?
+            if "(" in key:
+                cmd, args = key[1:-1].split("(")
+            else:
+                cmd = key[1:]
+                args = []
+            return CMDs(cmd,args)
+            
         else:
             return ostr
     
     return regex.sub(replace, txt)
     
-        
-        
+
+
+
+
+
+
+
     
     
 
 def setup_logger(args):
-    logger.setLevel(logging.DEBUG)
+    LOG.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
     # todo: place them in a log directory, or add the time to the log's
     # filename, or append to pre-existing log
@@ -130,9 +170,9 @@ def setup_logger(args):
     ch.setFormatter(logging.Formatter(
         '%(levelname)s: %(message)s'
     ))
-    # add the handlers to the logger
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    # add the handlers to the LOG
+    LOG.addHandler(fh)
+    LOG.addHandler(ch)
 
     
 def get_arguments():
@@ -156,17 +196,17 @@ if __name__ == '__main__':
         #start_time = datetime.now()
 
         #args = get_arguments()
-        #setup_logger(args)
-        #logger.debug(start_time)
+        #setup_LOG(args)
+        #LOG.debug(start_time)
 
         #main(args)
 
         #finish_time = datetime.now()
-        #logger.debug(finish_time)
-        #logger.debug('Execution time: {time}'.format(
+        #LOG.debug(finish_time)
+        #LOG.debug('Execution time: {time}'.format(
             #time=(finish_time - start_time)
         #))
-        #logger.debug("#"*20 + " END EXECUTION " + "#"*20)
+        #LOG.debug("#"*20 + " END EXECUTION " + "#"*20)
 
         #sys.exit(0)
 
@@ -177,7 +217,7 @@ if __name__ == '__main__':
         #raise e
 
     #except Exception as e:
-        #logger.exception("Something happened and I don't know what to do D:")
+        #LOG.exception("Something happened and I don't know what to do D:")
         #sys.exit(1)
         
 
@@ -200,56 +240,169 @@ for fng in args.functions:
     else:
         fncs_to_check.append(fng)
 
+
+D = {
+    'hosts': {},
+    'hosts_order' : [],
+    'funcs': {},
+    'funcs_order' : []
+}
+
 # second check if functions are actually awailable
 for fn in fncs_to_check:
     if not fn in config['functions'].keys():
-        logger.warning("Function <%s> not defined in config.yaml" % fn)
+        LOG.warning("Function <%s> not defined in config.yaml" % fn)
         continue
     
-    installscript = pathlib2.Path("installscripts/%s.sh" % fn)
-    if not installscript.is_file():
-        logger.warning("Function <%s> doesn't have an installscript in subdir" % fn)
-        continue
+    host = config['functions'][fn]['host']
     
-    test_suite = test_loader.discover('test_functions', pattern='%s.py' % fn)
+    # check if host setup scripts are around
+    scripts = map(pathlib2.Path, [
+        os.path.join('server_spawn_openstack_setup', "%s.sh" %host),
+        os.path.join('server_spawn_machine_setup', "%s.sh" %host),
+        os.path.join('function_spawn_openstack_setup', "%s.sh" %fn),
+        os.path.join('function_spawn_machine_setup', "%s.sh" %fn),
+    ])
+
+    for scr_path in scripts:
+        if not scr_path.is_file():
+            LOG.critical("ABORT! Function <%s>, Host <%s>: can't find: %s", fn, host, scr_path)
+            sys.exit(1)
+
+    test_suite = test_loader.discover('function_tests', pattern='%s.py' % fn)
     if not test_suite.countTestCases() > 0:
-        logger.warning("Function <%s> doesn;t have any test cases defined" % fn)
-        continue
-        
-    d = {'name':fn, 'script': installscript, 'test':test_suite}
-    #d = (fn, installscript, test_suite)
-    fncs_to_install.append(d)
+        LOG.warning("Function <%s> doesn't have any test cases defined" % fn)
+        #continue
     
-if len(fncs_to_install) <= 0:
-    logger.critical("no functions to install, exiting")
+    try:
+        module = importlib.import_module('%s.%s' % (folders['modules'], fn))
+    except ImportError:
+        LOG.warning("Function <%s> doesn't have any install python code" % fn)
+        #continue
+
+    if not host in D['hosts_order']:
+        D['hosts_order'].append(host)
+        D['hosts'][host] = {
+            'name': host,
+            'openstack': hscripts[0],
+            'machine': hscripts[1]
+        }
+    
+    if not fn in D['funcs_order']:
+        D['funcs_order'].append(fn)
+        D['funcs'][fn] = {
+            'name': fn,
+            'host': host,
+            'openstack': hscripts[2],
+            'machine': hscripts[3],
+            'module': module,
+            'test': test_suite
+        }
+
+
+
+if len(D['funcs_order']) <= 0:
+    LOG.critical("no functions to install, exiting")
     sys.exit(1)
 
 
+LOG.info("Installing all host machine systems")
 
-logger.info("Installing all systems")
+for hostname in D['hosts_order']:
+    
+    host = D['hosts'][hostname]
+    #install_machine(host)
+    #def install_machine(host):
+    if True:
+        hostname = host['name']
+        openstackscript = host['openstack']
+        machinescript   = host['machine']
+
+        LOG.info("installing host <%s>", name)
+        
+        with openstackscript.open() as f:
+            script = f.read()
+         
+        scripttxt = template_engine(script, config)
+        
+        scriptFile = NamedTemporaryFile(delete=True)
+        with open(scriptFile.name, 'w') as f:
+            # f.write("#!/bin/bash\n")
+            f.write(scripttxt)
+
+        os.chmod(scriptFile.name, 0777)
+        scriptFile.file.close()
+
+        print "------------------------------"
+        print " running the script file:"
+        print "------------------------------"
+        print(script)
+        print "------------------------------"
+        print "output of script:"
+        print "------------------------------"
+        a = subprocess.check_call(scriptFile.name)
+        print "------------------------------"
+
+
+
+
 
 for fnc_d in fncs_to_install:
-    name = fnc_d['name']
-    script = fnc_d['script']
-    suite = fnc_d['test']
     
-    with script.open() as f:
-        txt=f.read()
+    #install_machine(fnc_d)
+    #def install_machine(fnc_d):
+    if True:
+        pass
     
-    s = template_engine(txt, config)
-    print s 
+
+    #install(fnc_d)
+    #def install(fnc_d):
+    if True: 
+        name = fnc_d['name']
+        sc_script = fnc_d['openstackinstall_script']
+        ma_script = fnc_d['machineinstall_script']
+        module = fnc_d['module']
+        suite = fnc_d['test']
+
+        LOG.info("installing %s", name)
+        
+    
+        with sc_script.open() as f:
+            script = f.read()
+         
+        scripttxt = template_engine(script, config)
+        
+        scriptFile = NamedTemporaryFile(delete=True)
+        with open(scriptFile.name, 'w') as f:
+            f.write("#!/bin/bash\n")
+            f.write(scripttxt)
+
+        os.chmod(scriptFile.name, 0777)
+        scriptFile.file.close()
+
+        print "------------------------------"
+        print " running the script file:"
+        print "------------------------------"
+        print(script)
+        print "------------------------------"
+        print "output of script:"
+        print "------------------------------"
+        a = subprocess.check_call(scriptFile.name)
+        print "------------------------------"
+        
     
     
-logger.info("Testing installation")
+LOG.info("Testing installation")
 
 for fnc_d in fncs_to_install:
+
     name = fnc_d['name']
-    script = fnc_d['script']
+    ma_script = fnc_d['machineinstall_script']
+    sc_script = fnc_d['openstackinstall_script']
+    module = fnc_d['module']
     suite = fnc_d['test']
-    unittest.TextTestRunner(verbosity=2).run(suite)
 
-
-logger.info("Installing functions: %s", fncs_to_install)
+LOG.info("Installing functions: %s", fncs_to_install)
 
 
 
