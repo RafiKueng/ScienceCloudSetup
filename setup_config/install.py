@@ -44,15 +44,6 @@ import subprocess
 reload(logging)
 LOG = logging.getLogger(__appname__)
 
-folders={
-    'modules': 'install_modules',
-    'machine': 'machineinstall_scripts',
-    'openstack': 'openstacksetup_scripts',
-    'tests' : 'test_functions'
-}
-
-
-
 
 #def main(args):
     #config = yaml.safe_load(open("config.yml"))
@@ -275,7 +266,7 @@ for fn in fncs_to_check:
         #continue
     
     try:
-        module = importlib.import_module('%s.%s' % (folders['modules'], fn))
+        module = importlib.import_module('%s.%s' % ('function_spawn_modules', fn))
     except ImportError:
         LOG.warning("Function <%s> doesn't have any install python code" % fn)
         #continue
