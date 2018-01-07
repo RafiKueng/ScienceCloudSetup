@@ -10,7 +10,13 @@ import pprint as PPrint
 from pprint import pprint
 
 import logging
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger("SpL."+__name__)
+
+#LOG.addHandler(logging.NullHandler())
+#LOG.setLevel(logging.DEBUG)
+#LOG = logging
+
+#LOG.warn("test")
 
 class SimpleBashYamlTemplateEngine(object):
     """a simple template engine that does basically what
@@ -55,13 +61,15 @@ class SimpleBashYamlTemplateEngine(object):
         >>> re.sub("\$\{\!?[a-zA-Z_0-9.\-]+(\(.*\))?\}", "!", "test ${test()} ${!blaasdfasdf(sdf)}")
         """
         
+        LOG.debug("setup template engine")
         self.cwd = pathlib2.Path(cwd)
         self.regex = re.compile("\$\{\!?[\w.\-]+(\([\w/., ]*\))?\}")
 
         self.lookup = self.create_lookup(config)
         self.cmds = self.define_commands()
 
-
+        LOG.debug("setup template engine - done")
+        
     def __call__(self, text, cwd=""):
         if cwd.exists():
             self.cwd = pathlib2.Path(cwd)
@@ -161,7 +169,7 @@ class SimpleBashYamlTemplateEngine(object):
         
         ostr = sre_match.group()
         key = ostr[2:-1]
-        print key
+        #print key
 
         if key in lookup.keys():
             return str(lookup[key])
@@ -172,8 +180,13 @@ class SimpleBashYamlTemplateEngine(object):
             else:
                 cmd = key[1:]
                 args = []
-            print "command: %s %s" % (cmd, args)
-            return self.cmds[cmd](args)
+            #print "command: %s %s" % (cmd, args)
+            
+            if cmd in self.cmds.keys():
+                return self.cmds[cmd](args)
+            else:
+                LOG.warn("TemplEngine didn't find nor replace command <%s>", cmd)
+                return ostr
             
         else:
             return ostr

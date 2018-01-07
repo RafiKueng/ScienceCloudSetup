@@ -7,4 +7,3 @@
 
 # ${!include(_all.sh)}
 
-apt update

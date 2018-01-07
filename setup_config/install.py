@@ -39,14 +39,17 @@ import re
 import importlib
 from tempfile import NamedTemporaryFile
 import subprocess
+import fabric
+import fabric.api as fab
 
-from helper_modules import template_engine
-
-reload(template_engine)
-SimpleBashYamlTemplateEngine = template_engine.SimpleBashYamlTemplateEngine
+from helper_modules import template_engine, ssh_tunnel
 
 reload(logging)
-LOG = logging.getLogger(__appname__)
+#LOG = logging.getLogger(__appname__)
+#LOG = logging.getLogger(__name__)
+LOG = logging.getLogger("SpL")
+
+reload(template_engine)
 
 
 #def main(args):
@@ -60,98 +63,37 @@ LOG = logging.getLogger(__appname__)
 
 
 
+def get_assigned_machine_ip(hostname="", network="uzh-only"):
+    """Checks the openstack instance list and returns
+    the ip of the <hostname> in the <network>
+    """
+    
+    try:
+        out = subprocess.check_output('openstack server list -f csv | grep %s' % hostname, shell=True)
+    except subprocess.CalledProcessError:
+        LOG.critical("Could not get the ip of <%s> in the net <%s>, aborting (is the openstack psw set / rc file sourced?)", hostname, network)
+        sys.exit(1)
+    
+    nets = out.split(',')[3].strip('"')
+    net = [_.strip() for _ in nets.split(';') if _.strip().startswith(network)][0]
+    ip = net.split('=')[1]
+    
+    
+    return ip
 
 
-    
-#class Tmpl_CMDs(object):
-    
-    #def __init__(self):
-        #pass
-    
-    #def __call__(self, cmd, args=[]):
-        #return getattr(self,cmd)(args)
-        
-    #def include(self,args):
-        #return "INCLUDING FILE"
-            
-        
+def get_flavours():
+    try:
+        out = subprocess.check_output('openstack flavor list -f yaml', shell=True)
+    except subprocess.CalledProcessError:
+        LOG.critical("Could not connect to openstack, aborting (is the openstack psw set / rc file sourced?)", hostname, network)
+        sys.exit(1)
 
-
-
-
-#def template_engine(txt, config):
-    #"""
-    #a simple template engine that does basically what
-    #string templates from standart lib does, 
-    #except that is takes dotted strings and looks
-    #them up in 'config' as nested dict
-    
-    #config={'host':{'ip':10.0.0.1}}
-    #template_engine("my ip is ${host.ip}", config)
-    #"my ip is 10.0.0.1"
-    
-    #keys that are not found are left as is.
-    #"""
-        
-    
-    ## we assume that our templates have the format
-    ## ${a.b.c}
-    
-    #regex = re.compile("\$\{[a-zA-Z_0-9.\-]+\}")
-    
-    #lookup = {}
-    #CMDs = Tmpl_CMDs()
-    
-    #def create_lookup(config, pfx=""):
-        
-        #if isinstance(config, dict):
-            #for k, v in config.items():
-                #if len(pfx)<=0:
-                    #npfx=k
-                #else:
-                    #npfx=pfx+'.'+k
-                #create_lookup(v, pfx=npfx)
-        #elif isinstance(config, list):
-            ##lookup[pfx] = '[' + ", ".join(config) + ']'
-            #for i,k in enumerate(config):
-                #npfx=pfx+'.'+str(i)
-                #create_lookup(k, pfx=npfx)
-        #else:
-            ## print pfx+" : "+str(config)
-            #lookup[pfx] = config
-    
-    #create_lookup(config)
-    #LOG.debug("CONFIG LOOKUP TABLE:")
-    #LOG.debug("\n"+PPrint.pformat(lookup, indent=2))
-    
-    #def replace(sre_match):
-        #ostr = sre_match.group()
-        #key = ostr[2:-1]
-        ##print lstr, ";", s
-
-        #if key in lookup.keys():
-            #return str(lookup[key])
-        #elif key[0] == "!": # special command?
-            #if "(" in key:
-                #cmd, args = key[1:-1].split("(")
-            #else:
-                #cmd = key[1:]
-                #args = []
-            #return CMDs(cmd,args)
-            
-        #else:
-            #return ostr
-    
-    #return regex.sub(replace, txt)
-    
-
-
-
-
-
-
-
-    
+    flist = yaml.safe_load(out)
+    fdict = {}
+    for fl in flist:
+        fdict[fl['Name']] = fl
+    return fdict
     
 
 def setup_logger(args):
@@ -229,13 +171,14 @@ if __name__ == '__main__':
         #sys.exit(1)
         
 
-
 config = yaml.safe_load(open("config.yml"))
-TemplEngine = SimpleBashYamlTemplateEngine(config)
 
 args = get_arguments()
 setup_logger(args)
 
+TemplEngine = template_engine.SimpleBashYamlTemplateEngine(config)
+
+FLAVORS = get_flavours()
 
 test_loader = unittest.TestLoader()
 
@@ -348,12 +291,12 @@ def open_and_parse_script_file(scriptpath):
     os.chmod(scriptFile.name, 0777)
     scriptFile.file.close()
 
-    LOG.debug(
-        "running the script file:\n" +
-        "---vvv" + "-"*74 + "\n" +
-        scripttxt +
-        "---^^^" + "-"*74 + "\n"
-    )
+    LOG.debug("\n".join([
+        "running the script file <%s>:" % scriptpath,
+        "   /---vvv" + "-"*74 ,
+        "\n".join(["   | "+_ for _ in scripttxt.split("\n")]),
+        "   \\---^^^" + "-"*74
+    ]))
     
     return scriptFile
     
@@ -381,12 +324,18 @@ for hostname in D['hosts_order']:
             LOG.critical("Script returned error!")
             sys.exit(1)
 
-        LOG.info(
-            "output of script <%s>:\n" % openstackscript +
-            "---vvv" + "-"*74 + "\n" +
-            outp +
-            "---^^^" + "-"*74 + "\n"
-        )
+        #LOG.info(
+            #"output of script <%s>:\n" % openstackscript +
+            #"---vvv" + "-"*74 + "\n" +
+            #outp +
+            #"---^^^" + "-"*74 + "\n"
+        #)
+        LOG.info("\n".join([
+            "output of script file <%s>:" % openstackscript,
+            "   /---vvv" + "-"*74 ,
+            "\n".join(["   | "+_ for _ in outp.split("\n")]),
+            "   \\---^^^" + "-"*74
+        ]))
 
 
     # install_machine_(host)
@@ -400,23 +349,27 @@ for hostname in D['hosts_order']:
         LOG.info("setting up host <%s> on the machine", hostname)
         
         scriptFile = open_and_parse_script_file(machinescript)
-
         
-        # make sure to run a gateway to the controller on localhost
-        # ssh -f -N -M -S /tmp/sshsock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch
-        # kill it like
-        # ssh -S /tmp/sshsock -O exit rafik@taurus.physik.uzh.ch
-
-        subprocess.call("ssh -f -N -M -S /tmp/SpLInst_sshtun.sock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch", shell=True)
+        tunset = config['conntection_settings']
+        chost = tunset['controller']
+        net =   tunset['network']
+        tunset['targethost'] = get_assigned_machine_ip(chost, net)
         
-        from fabric.api import *
-        env.host_string = "debian@10.0.1.1"
-        env.gateway = "debian@localhost:10022"
-        run("hostname")
+        with ssh_tunnel.SshTunnel(**tunset) as tun:
+                #localport=10022,
+                #targethost="172.23.24.117", targetport=22,
+                #proxyhost="rafik@taurus.physik.uzh.ch") as tun:
+            
+            fab.env.host_string = "debian@10.0.1.1"
+            fab.env.gateway = "debian@localhost:10022"
 
-        subprocess.call("ssh -S /tmp/SpLInst_sshtun.sock -O exit rafik@taurus.physik.uzh.ch", shell=True)
+            fab.put(scriptFile.name, scriptFile.name, mode="0755")
+            
+            # fab.run("hostname")
+            a = fab.sudo(scriptFile.name)
+            fab.run("rm %s" % scriptFile.name )
+            
 
-    
 
 
 for fnc in D['funcs_order']:

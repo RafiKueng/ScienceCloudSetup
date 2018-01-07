@@ -8,23 +8,34 @@
 # we expect ssh autologin using keyfiles!
 #
 conntection_settings:
-    physics_host:       taurus.physik.uzh.ch
-    controller_host:    172.0.0.0
+    localport:      10022
+    targetport:     22
+    proxyhost:      rafik@taurus.physik.uzh.ch
+    # enter here the name of the controller node,
+    # and the (openstack) network on which it can be
+    # reached from the proxy machine/host 
+    controller:     saturn
+    network:        "uzh-only"
+    #targethost:     172.23.24.117
+    
 
 
 networks:
     internal:       &netInternal
         name:           net_intern
+        short:          INT
         iprange:        10.0.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
     university:     &netUzh
         name:           net_uzh
+        short:          UZH
         iprange:        10.1.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
     external:       &netExternal
         name:           net_extern
+        short:          EXT
         iprange:        10.9.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
@@ -36,11 +47,17 @@ networks:
 #
 # make sure that the identifier and hostname are the same!
 # we name them after moons of saturn for example
-servers:   
+servers:
+    
+    # default settings
+    image:      "Debian 9.2"
+    sshkeyname: "taurus"
 
     # the controller node
     saturn:   &saturn 
         host:   saturn
+        flavor: "1cpu-1ram-server"
+        secgroup: default
         networks:
             int:
                 <<: *netInternal
