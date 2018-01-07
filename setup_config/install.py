@@ -15,7 +15,7 @@ LICENSE
     Specify this script's / package's license.
 """
 
-__appname__ = "SpaghettiLens Cloud Installer"
+__appname__ = "SpaghettiLensCloudInstaller"
 __author__  = "RafaelKueng <rafael.kueng@uzh.ch>"
 __version__ = "0.1"
 __license__ = "License"
@@ -106,8 +106,8 @@ def template_engine(txt, config):
             lookup[pfx] = config
     
     create_lookup(config)
-    LOG.info("CONFIG LOOKUP TABLE:")
-    LOG.info(PPrint.pformat(lookup, indent=2))
+    LOG.debug("CONFIG LOOKUP TABLE:")
+    LOG.debug("\n"+PPrint.pformat(lookup, indent=2))
     
     def replace(sre_match):
         ostr = sre_match.group()
@@ -275,8 +275,8 @@ for fn in fncs_to_check:
         D['hosts_order'].append(host)
         D['hosts'][host] = {
             'name': host,
-            'openstack': hscripts[0],
-            'machine': hscripts[1]
+            'openstack': scripts[0],
+            'machine': scripts[1]
         }
     
     if not fn in D['funcs_order']:
@@ -284,8 +284,8 @@ for fn in fncs_to_check:
         D['funcs'][fn] = {
             'name': fn,
             'host': host,
-            'openstack': hscripts[2],
-            'machine': hscripts[3],
+            'openstack': scripts[2],
+            'machine': scripts[3],
             'module': module,
             'test': test_suite
         }
@@ -302,14 +302,16 @@ LOG.info("Installing all host machine systems")
 for hostname in D['hosts_order']:
     
     host = D['hosts'][hostname]
-    #install_machine(host)
-    #def install_machine(host):
+    
+    #setup_machine_on_openstack(host)
+    #def setup_machine_on_openstack(host):
     if True:
+
         hostname = host['name']
         openstackscript = host['openstack']
         machinescript   = host['machine']
 
-        LOG.info("installing host <%s>", name)
+        LOG.info("setting up host <%s> on openstack", hostname)
         
         with openstackscript.open() as f:
             script = f.read()
@@ -317,6 +319,7 @@ for hostname in D['hosts_order']:
         scripttxt = template_engine(script, config)
         
         scriptFile = NamedTemporaryFile(delete=True)
+        LOG.debug("using script temp file: %s", scriptFile.name)
         with open(scriptFile.name, 'w') as f:
             # f.write("#!/bin/bash\n")
             f.write(scripttxt)
@@ -324,18 +327,55 @@ for hostname in D['hosts_order']:
         os.chmod(scriptFile.name, 0777)
         scriptFile.file.close()
 
-        print "------------------------------"
-        print " running the script file:"
-        print "------------------------------"
-        print(script)
-        print "------------------------------"
-        print "output of script:"
-        print "------------------------------"
-        a = subprocess.check_call(scriptFile.name)
-        print "------------------------------"
+        LOG.debug(
+            "running the script file:\n" +
+            "---vvv" + "-"*74 + "\n" +
+            scripttxt +
+            "---^^^" + "-"*74 + "\n"
+        )
+        try:
+            outp = subprocess.check_output(scriptFile.name, shell=True)
+        except subprocess.CalledProcessError:
+            LOG.critical("Script returned error!")
+            sys.exit(1)
+
+        LOG.info(
+            "output of script <%s>:\n" % openstackscript +
+            "---vvv" + "-"*74 + "\n" +
+            outp +
+            "---^^^" + "-"*74 + "\n"
+        )
 
 
+    # install_machine_(host)
+    #def install_machine(host):
+    if True:
 
+        hostname = host['name']
+        openstackscript = host['openstack']
+        machinescript   = host['machine']
+
+        LOG.info("setting up host <%s> on the machine", hostname)
+        
+        # make sure to run a gateway to the controller on localhost
+        # ssh -f -N -M -S /tmp/sshsock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch
+        # kill it like
+        # ssh -S /tmp/sshsock -O exit rafik@taurus.physik.uzh.ch
+
+        subprocess.call("ssh -f -N -M -S /tmp/sshsock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch", shell=True)
+        
+        from fabric.api import *
+        env.host_string = "debian@10.0.1.1"
+        env.gateway = "debian@localhost:10022"
+        run("hostname")
+
+        subprocess.call("ssh -S /tmp/sshsock -O exit rafik@taurus.physik.uzh.ch", shell=True)
+
+    
+
+
+for fnc in D['funcs_order']:
+    pass
 
 
 for fnc_d in fncs_to_install:
