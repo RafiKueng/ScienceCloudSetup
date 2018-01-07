@@ -40,6 +40,10 @@ import importlib
 from tempfile import NamedTemporaryFile
 import subprocess
 
+from helper_modules import template_engine
+
+reload(template_engine)
+SimpleBashYamlTemplateEngine = template_engine.SimpleBashYamlTemplateEngine
 
 reload(logging)
 LOG = logging.getLogger(__appname__)
@@ -51,83 +55,94 @@ LOG = logging.getLogger(__appname__)
     #install_funcs = args.functions
     
     #pprint(install_funcs)
-    
-class Tmpl_CMDs(object):
-    
-    def __init__(self):
-        pass
-    
-    def __call__(self, cmd, args=[]):
-        return getattr(self,cmd)(args)
-        
-    def include(self,args):
-        return "INCLUDING FILE"
-            
-        
-def template_engine(txt, config):
-    """
-    a simple template engine that does basically what
-    string templates from standart lib does, 
-    except that is takes dotted strings and looks
-    them up in 'config' as nested dict
-    
-    config={'host':{'ip':10.0.0.1}}
-    template_engine("my ip is ${host.ip}", config)
-    "my ip is 10.0.0.1"
-    
-    keys that are not found are left as is.
-    """
-        
-    
-    # we assume that our templates have the format
-    # ${a.b.c}
-    
-    regex = re.compile("\$\{[a-zA-Z_0-9.\-]+\}")
-    
-    lookup = {}
-    CMDs = Tmpl_CMDs()
-    
-    def create_lookup(config, pfx=""):
-        
-        if isinstance(config, dict):
-            for k, v in config.items():
-                if len(pfx)<=0:
-                    npfx=k
-                else:
-                    npfx=pfx+'.'+k
-                create_lookup(v, pfx=npfx)
-        elif isinstance(config, list):
-            #lookup[pfx] = '[' + ", ".join(config) + ']'
-            for i,k in enumerate(config):
-                npfx=pfx+'.'+str(i)
-                create_lookup(k, pfx=npfx)
-        else:
-            # print pfx+" : "+str(config)
-            lookup[pfx] = config
-    
-    create_lookup(config)
-    LOG.debug("CONFIG LOOKUP TABLE:")
-    LOG.debug("\n"+PPrint.pformat(lookup, indent=2))
-    
-    def replace(sre_match):
-        ostr = sre_match.group()
-        key = ostr[2:-1]
-        #print lstr, ";", s
 
-        if key in lookup.keys():
-            return str(lookup[key])
-        elif key[0] == "!": # special command?
-            if "(" in key:
-                cmd, args = key[1:-1].split("(")
-            else:
-                cmd = key[1:]
-                args = []
-            return CMDs(cmd,args)
-            
-        else:
-            return ostr
+
+
+
+
+
+
     
-    return regex.sub(replace, txt)
+#class Tmpl_CMDs(object):
+    
+    #def __init__(self):
+        #pass
+    
+    #def __call__(self, cmd, args=[]):
+        #return getattr(self,cmd)(args)
+        
+    #def include(self,args):
+        #return "INCLUDING FILE"
+            
+        
+
+
+
+
+#def template_engine(txt, config):
+    #"""
+    #a simple template engine that does basically what
+    #string templates from standart lib does, 
+    #except that is takes dotted strings and looks
+    #them up in 'config' as nested dict
+    
+    #config={'host':{'ip':10.0.0.1}}
+    #template_engine("my ip is ${host.ip}", config)
+    #"my ip is 10.0.0.1"
+    
+    #keys that are not found are left as is.
+    #"""
+        
+    
+    ## we assume that our templates have the format
+    ## ${a.b.c}
+    
+    #regex = re.compile("\$\{[a-zA-Z_0-9.\-]+\}")
+    
+    #lookup = {}
+    #CMDs = Tmpl_CMDs()
+    
+    #def create_lookup(config, pfx=""):
+        
+        #if isinstance(config, dict):
+            #for k, v in config.items():
+                #if len(pfx)<=0:
+                    #npfx=k
+                #else:
+                    #npfx=pfx+'.'+k
+                #create_lookup(v, pfx=npfx)
+        #elif isinstance(config, list):
+            ##lookup[pfx] = '[' + ", ".join(config) + ']'
+            #for i,k in enumerate(config):
+                #npfx=pfx+'.'+str(i)
+                #create_lookup(k, pfx=npfx)
+        #else:
+            ## print pfx+" : "+str(config)
+            #lookup[pfx] = config
+    
+    #create_lookup(config)
+    #LOG.debug("CONFIG LOOKUP TABLE:")
+    #LOG.debug("\n"+PPrint.pformat(lookup, indent=2))
+    
+    #def replace(sre_match):
+        #ostr = sre_match.group()
+        #key = ostr[2:-1]
+        ##print lstr, ";", s
+
+        #if key in lookup.keys():
+            #return str(lookup[key])
+        #elif key[0] == "!": # special command?
+            #if "(" in key:
+                #cmd, args = key[1:-1].split("(")
+            #else:
+                #cmd = key[1:]
+                #args = []
+            #return CMDs(cmd,args)
+            
+        #else:
+            #return ostr
+    
+    #return regex.sub(replace, txt)
     
 
 
@@ -170,11 +185,13 @@ def get_arguments():
     parser = argparse.ArgumentParser(
         description="Description printed to command-line if -h is called."
     )
+    
+    fntxt = "avaiable options: " + ", ".join(config['functions'].keys())
+    parser.add_argument('functions', action='store', nargs='+',
+        help='the functions to install. '+fntxt)
+
     # during development, I set default to False so I don't have to keep
     # calling this with -v
-    parser.add_argument('functions', action='store', nargs='+',
-        help='the functions to install')
-
     parser.add_argument('-v', '--verbose', action='store_true',
         default=True, help='verbose output')
 
@@ -213,12 +230,14 @@ if __name__ == '__main__':
         
 
 
+config = yaml.safe_load(open("config.yml"))
+TemplEngine = SimpleBashYamlTemplateEngine(config)
+
 args = get_arguments()
 setup_logger(args)
 
 
 test_loader = unittest.TestLoader()
-config = yaml.safe_load(open("config.yml"))
 
 fncs_to_check = []
 fncs_to_install = []
@@ -299,6 +318,47 @@ if len(D['funcs_order']) <= 0:
 
 LOG.info("Installing all host machine systems")
 
+
+
+def open_and_parse_script_file(scriptpath):
+    """Opens a script file, parses it,
+    and returns a (closed) temporary file
+    with the result. (use scriptFile.name
+    to get the path.)
+    
+    Keyword arguments:
+    scriptpath -- path to the script (pathlib2.Path)
+    """
+    try:
+        with scriptpath.open() as f:
+            script = f.read()
+    except:
+        LOG.critical("Cannot open script file (is it a pathlib2.Path??")
+        sys.exit(1)
+        
+    #scripttxt = template_engine(script, config)
+    scripttxt = TemplEngine(script, scriptpath.parent.absolute())
+    
+    scriptFile = NamedTemporaryFile(delete=True)
+    LOG.debug("using script temp file: %s", scriptFile.name)
+    with open(scriptFile.name, 'w') as f:
+        # f.write("#!/bin/bash\n")
+        f.write(scripttxt)
+
+    os.chmod(scriptFile.name, 0777)
+    scriptFile.file.close()
+
+    LOG.debug(
+        "running the script file:\n" +
+        "---vvv" + "-"*74 + "\n" +
+        scripttxt +
+        "---^^^" + "-"*74 + "\n"
+    )
+    
+    return scriptFile
+    
+    
+
 for hostname in D['hosts_order']:
     
     host = D['hosts'][hostname]
@@ -312,27 +372,9 @@ for hostname in D['hosts_order']:
         machinescript   = host['machine']
 
         LOG.info("setting up host <%s> on openstack", hostname)
-        
-        with openstackscript.open() as f:
-            script = f.read()
-         
-        scripttxt = template_engine(script, config)
-        
-        scriptFile = NamedTemporaryFile(delete=True)
-        LOG.debug("using script temp file: %s", scriptFile.name)
-        with open(scriptFile.name, 'w') as f:
-            # f.write("#!/bin/bash\n")
-            f.write(scripttxt)
 
-        os.chmod(scriptFile.name, 0777)
-        scriptFile.file.close()
-
-        LOG.debug(
-            "running the script file:\n" +
-            "---vvv" + "-"*74 + "\n" +
-            scripttxt +
-            "---^^^" + "-"*74 + "\n"
-        )
+        scriptFile = open_and_parse_script_file(openstackscript)
+        
         try:
             outp = subprocess.check_output(scriptFile.name, shell=True)
         except subprocess.CalledProcessError:
@@ -357,19 +399,22 @@ for hostname in D['hosts_order']:
 
         LOG.info("setting up host <%s> on the machine", hostname)
         
+        scriptFile = open_and_parse_script_file(machinescript)
+
+        
         # make sure to run a gateway to the controller on localhost
         # ssh -f -N -M -S /tmp/sshsock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch
         # kill it like
         # ssh -S /tmp/sshsock -O exit rafik@taurus.physik.uzh.ch
 
-        subprocess.call("ssh -f -N -M -S /tmp/sshsock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch", shell=True)
+        subprocess.call("ssh -f -N -M -S /tmp/SpLInst_sshtun.sock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch", shell=True)
         
         from fabric.api import *
         env.host_string = "debian@10.0.1.1"
         env.gateway = "debian@localhost:10022"
         run("hostname")
 
-        subprocess.call("ssh -S /tmp/sshsock -O exit rafik@taurus.physik.uzh.ch", shell=True)
+        subprocess.call("ssh -S /tmp/SpLInst_sshtun.sock -O exit rafik@taurus.physik.uzh.ch", shell=True)
 
     
 

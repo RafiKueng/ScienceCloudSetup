@@ -18,11 +18,11 @@ networks:
         iprange:        10.0.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
-    #university:     &netUzh
-        #name:           net_uzh
-        #iprange:        10.1.0.0
-        #subnet:         255.255.0.0
-        #sn_pfx:         /16
+    university:     &netUzh
+        name:           net_uzh
+        iprange:        10.1.0.0
+        subnet:         255.255.0.0
+        sn_pfx:         /16
     external:       &netExternal
         name:           net_extern
         iprange:        10.9.0.0
