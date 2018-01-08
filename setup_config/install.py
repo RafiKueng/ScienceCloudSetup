@@ -78,16 +78,22 @@ def run_script_locally(scriptFile):
     """
 
     try:
-        outp = subprocess.check_output(scriptFile.name, shell=True)
-    except subprocess.CalledProcessError:
-        LOG.critical("Script returned error! <%s>", scriptFile.name)
+        outp = subprocess.check_output(
+            scriptFile.name,
+            stderr=subprocess.STDOUT,
+            shell=True)
+    except subprocess.CalledProcessError as e:
+        LOG.warn("Script returned error! <%s>", scriptFile.name)
+        outp = e.output
+        print_script_output(outp, scriptFile.name)
         sys.exit(1)
 
     return outp
 
 
-def run_script_locally(scriptFile):
-    """locally runs a script file
+def run_script_remotly(scriptFile):
+    """remotly runs a script file through the SshTunnel
+    using fab
     
     scriptFile -- pathlib2.Path to scriptfile
     """

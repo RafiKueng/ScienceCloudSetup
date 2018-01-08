@@ -22,11 +22,13 @@ conntection_settings:
 
 networks:
     internal:       &netInternal
-        name:           net_intern
+        name:           net_int
         short:          INT
         iprange:        10.0.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
+        pool_start:     10.0.254.1
+        pool_end:       10.0.254.254
     university:     &netUzh
         name:           net_uzh
         short:          UZH
@@ -34,7 +36,7 @@ networks:
         subnet:         255.255.0.0
         sn_pfx:         /16
     external:       &netExternal
-        name:           net_extern
+        name:           net_ext
         short:          EXT
         iprange:        10.9.0.0
         subnet:         255.255.0.0
