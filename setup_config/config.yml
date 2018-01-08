@@ -52,6 +52,11 @@ servers:
     # default settings
     image:      "Debian 9.2"
     sshkeyname: "taurus"
+    
+    # dummy machine that doesn't exist and does nothing
+    none:       &NONE
+        host:   none
+
 
     # the controller node
     saturn:   &saturn 
@@ -104,6 +109,11 @@ servers:
 functions:
 
     # CONTROLLER
+    
+    ## init is special function that initializes openstack
+    ## like networking...
+    ## but doesn't setup any machine
+    init:       None
     
     # basic controller allows ssh to other machines..
     basiccontroller:

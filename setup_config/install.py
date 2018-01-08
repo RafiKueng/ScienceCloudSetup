@@ -60,6 +60,98 @@ reload(template_engine)
     #pprint(install_funcs)
 
 
+def print_script_output(outp, scriptname):
+    
+    LOG.info("\n".join([
+        "output of script file <%s>:" % scriptname,
+        "   /---vvv" + "-"*74 ,
+        "\n".join(["   | "+_ for _ in outp.split("\n")]),
+        "   \\---^^^" + "-"*74
+    ]))
+    
+
+
+def run_script_locally(scriptFile):
+    """locally runs a script file
+    
+    scriptFile -- pathlib2.Path to scriptfile
+    """
+
+    try:
+        outp = subprocess.check_output(scriptFile.name, shell=True)
+    except subprocess.CalledProcessError:
+        LOG.critical("Script returned error! <%s>", scriptFile.name)
+        sys.exit(1)
+
+    return outp
+
+
+def run_script_locally(scriptFile):
+    """locally runs a script file
+    
+    scriptFile -- pathlib2.Path to scriptfile
+    """
+
+    tunset = config['conntection_settings']
+    chost = tunset['controller']
+    net =   tunset['network']
+    tunset['targethost'] = get_assigned_machine_ip(chost, net)
+    
+    with ssh_tunnel.SshTunnel(**tunset) as tun:
+            #localport=10022,
+            #targethost="172.23.24.117", targetport=22,
+            #proxyhost="rafik@taurus.physik.uzh.ch") as tun:
+        
+        fab.env.host_string = "debian@10.0.1.1"
+        fab.env.gateway = "debian@localhost:10022"
+
+        fab.put(scriptFile.name, scriptFile.name, mode="0755")
+        
+        # fab.run("hostname")
+        outp = fab.sudo(scriptFile.name)
+        fab.run("rm %s" % scriptFile.name )
+        
+    return outp
+
+
+
+
+def open_and_parse_script_file(scriptpath):
+    """Opens a script file, parses it,
+    and returns a (closed) temporary file
+    with the result. (use scriptFile.name
+    to get the path.)
+    
+    Keyword arguments:
+    scriptpath -- path to the script (pathlib2.Path)
+    """
+    try:
+        with scriptpath.open() as f:
+            script = f.read()
+    except:
+        LOG.critical("Cannot open script file (is it a pathlib2.Path??")
+        sys.exit(1)
+        
+    #scripttxt = template_engine(script, config)
+    scripttxt = TemplEngine(script, scriptpath.parent.absolute())
+    
+    scriptFile = NamedTemporaryFile(delete=True)
+    LOG.debug("using script temp file: %s", scriptFile.name)
+    with open(scriptFile.name, 'w') as f:
+        # f.write("#!/bin/bash\n")
+        f.write(scripttxt)
+
+    os.chmod(scriptFile.name, 0777)
+    scriptFile.file.close()
+
+    LOG.debug("\n".join([
+        "running the script file <%s>:" % scriptpath,
+        "   /---vvv" + "-"*74 ,
+        "\n".join(["   | "+_ for _ in scripttxt.split("\n")]),
+        "   \\---^^^" + "-"*74
+    ]))
+    
+    return scriptFile
 
 
 
@@ -204,10 +296,17 @@ D = {
 # second check if functions are actually awailable
 for fn in fncs_to_check:
     if not fn in config['functions'].keys():
-        LOG.warning("Function <%s> not defined in config.yaml" % fn)
+        LOG.warning("Function <%s> not defined in config.yaml", fn)
         continue
     
-    host = config['functions'][fn]['host']
+    try:
+        host = config['functions'][fn]['host']
+        LOG.info("Function <%s> defines a host <%s>", fn, host)
+        has_host = True
+    except:
+        LOG.info("Function <%s> didn't define a host", fn)
+        host = ""
+        has_host = False
     
     # check if host setup scripts are around
     scripts = map(pathlib2.Path, [
@@ -217,23 +316,32 @@ for fn in fncs_to_check:
         os.path.join('function_spawn_machine_setup', "%s.sh" %fn),
     ])
 
-    for scr_path in scripts:
+    for i, scr_path in enumerate(scripts):
         if not scr_path.is_file():
-            LOG.critical("ABORT! Function <%s>, Host <%s>: can't find: %s", fn, host, scr_path)
-            sys.exit(1)
+            LOG.info("Function <%s>, Host <%s>: can't find: %s", fn, host, scr_path)
+            scripts[i] = None
+        else:
+            LOG.info("Function <%s>, Host <%s>: found script: %s", fn, host, scr_path)
+
 
     test_suite = test_loader.discover('function_tests', pattern='%s.py' % fn)
     if not test_suite.countTestCases() > 0:
         LOG.warning("Function <%s> doesn't have any test cases defined" % fn)
+        test_suite = None
         #continue
+    else:
+        LOG.info("Function <%s> test suite loaded" % fn)
+        
     
     try:
         module = importlib.import_module('%s.%s' % ('function_spawn_modules', fn))
+        LOG.info("Function <%s> python code found" % fn)
     except ImportError:
-        LOG.warning("Function <%s> doesn't have any install python code" % fn)
+        LOG.info("Function <%s> doesn't have any install python code" % fn)
+        module = None
         #continue
 
-    if not host in D['hosts_order']:
+    if has_host and not host in D['hosts_order']:
         D['hosts_order'].append(host)
         D['hosts'][host] = {
             'name': host,
@@ -259,48 +367,9 @@ if len(D['funcs_order']) <= 0:
     sys.exit(1)
 
 
-LOG.info("Installing all host machine systems")
-
-
-
-def open_and_parse_script_file(scriptpath):
-    """Opens a script file, parses it,
-    and returns a (closed) temporary file
-    with the result. (use scriptFile.name
-    to get the path.)
-    
-    Keyword arguments:
-    scriptpath -- path to the script (pathlib2.Path)
-    """
-    try:
-        with scriptpath.open() as f:
-            script = f.read()
-    except:
-        LOG.critical("Cannot open script file (is it a pathlib2.Path??")
-        sys.exit(1)
-        
-    #scripttxt = template_engine(script, config)
-    scripttxt = TemplEngine(script, scriptpath.parent.absolute())
-    
-    scriptFile = NamedTemporaryFile(delete=True)
-    LOG.debug("using script temp file: %s", scriptFile.name)
-    with open(scriptFile.name, 'w') as f:
-        # f.write("#!/bin/bash\n")
-        f.write(scripttxt)
-
-    os.chmod(scriptFile.name, 0777)
-    scriptFile.file.close()
-
-    LOG.debug("\n".join([
-        "running the script file <%s>:" % scriptpath,
-        "   /---vvv" + "-"*74 ,
-        "\n".join(["   | "+_ for _ in scripttxt.split("\n")]),
-        "   \\---^^^" + "-"*74
-    ]))
-    
-    return scriptFile
-    
-    
+LOG.info("-"*80)
+LOG.info("installing host machines")
+LOG.info("-"*80)
 
 for hostname in D['hosts_order']:
     
@@ -312,30 +381,19 @@ for hostname in D['hosts_order']:
 
         hostname = host['name']
         openstackscript = host['openstack']
-        machinescript   = host['machine']
-
-        LOG.info("setting up host <%s> on openstack", hostname)
-
-        scriptFile = open_and_parse_script_file(openstackscript)
+        #machinescript   = host['machine']
         
-        try:
-            outp = subprocess.check_output(scriptFile.name, shell=True)
-        except subprocess.CalledProcessError:
-            LOG.critical("Script returned error!")
-            sys.exit(1)
+        if openstackscript is None:
+            LOG.info("no openstackscript for host <%s>", hostname)
 
-        #LOG.info(
-            #"output of script <%s>:\n" % openstackscript +
-            #"---vvv" + "-"*74 + "\n" +
-            #outp +
-            #"---^^^" + "-"*74 + "\n"
-        #)
-        LOG.info("\n".join([
-            "output of script file <%s>:" % openstackscript,
-            "   /---vvv" + "-"*74 ,
-            "\n".join(["   | "+_ for _ in outp.split("\n")]),
-            "   \\---^^^" + "-"*74
-        ]))
+        else:
+            LOG.info("setting up host <%s> on openstack", hostname)
+
+            scriptFile = open_and_parse_script_file(openstackscript)
+            outp = run_script_locally(scriptFile)
+            print_script_output(outp, openstackscript)
+            
+            
 
 
     # install_machine_(host)
@@ -343,95 +401,121 @@ for hostname in D['hosts_order']:
     if True:
 
         hostname = host['name']
-        openstackscript = host['openstack']
+        # openstackscript = host['openstack']
         machinescript   = host['machine']
 
-        LOG.info("setting up host <%s> on the machine", hostname)
-        
-        scriptFile = open_and_parse_script_file(machinescript)
-        
-        tunset = config['conntection_settings']
-        chost = tunset['controller']
-        net =   tunset['network']
-        tunset['targethost'] = get_assigned_machine_ip(chost, net)
-        
-        with ssh_tunnel.SshTunnel(**tunset) as tun:
-                #localport=10022,
-                #targethost="172.23.24.117", targetport=22,
-                #proxyhost="rafik@taurus.physik.uzh.ch") as tun:
-            
-            fab.env.host_string = "debian@10.0.1.1"
-            fab.env.gateway = "debian@localhost:10022"
+        if machinescript is None:
+            LOG.info("no machinescript for host <%s>", hostname)
 
-            fab.put(scriptFile.name, scriptFile.name, mode="0755")
+        else:
+            LOG.info("setting up host <%s> on the machine", hostname)
             
-            # fab.run("hostname")
-            a = fab.sudo(scriptFile.name)
-            fab.run("rm %s" % scriptFile.name )
-            
+            scriptFile = open_and_parse_script_file(machinescript)
+            outp = run_script_remotly(scriptFile)
+            print_script_output(outp, machinescript)
+           
 
 
+LOG.info("-"*80)
+LOG.info("installing functions")
+LOG.info("-"*80)
 
 for fnc in D['funcs_order']:
-    pass
+    LOG.info("setting up function <%s>", fnc)
 
-
-for fnc_d in fncs_to_install:
+    fnc_d = D['funcs'][fnc]
+    hostname = fnc_d['host']
     
-    #install_machine(fnc_d)
-    #def install_machine(fnc_d):
-    if True:
-        pass
-    
-
-    #install(fnc_d)
-    #def install(fnc_d):
-    if True: 
-        name = fnc_d['name']
-        sc_script = fnc_d['openstackinstall_script']
-        ma_script = fnc_d['machineinstall_script']
-        module = fnc_d['module']
-        suite = fnc_d['test']
-
-        LOG.info("installing %s", name)
-        
-    
-        with sc_script.open() as f:
-            script = f.read()
-         
-        scripttxt = template_engine(script, config)
-        
-        scriptFile = NamedTemporaryFile(delete=True)
-        with open(scriptFile.name, 'w') as f:
-            f.write("#!/bin/bash\n")
-            f.write(scripttxt)
-
-        os.chmod(scriptFile.name, 0777)
-        scriptFile.file.close()
-
-        print "------------------------------"
-        print " running the script file:"
-        print "------------------------------"
-        print(script)
-        print "------------------------------"
-        print "output of script:"
-        print "------------------------------"
-        a = subprocess.check_call(scriptFile.name)
-        print "------------------------------"
-        
-    
-    
-LOG.info("Testing installation")
-
-for fnc_d in fncs_to_install:
-
-    name = fnc_d['name']
-    ma_script = fnc_d['machineinstall_script']
-    sc_script = fnc_d['openstackinstall_script']
     module = fnc_d['module']
-    suite = fnc_d['test']
+    openstackscript = fnc_d['openstack']
+    machinescript = fnc_d['machine']
+    testsuite = fnc_d['test']
 
-LOG.info("Installing functions: %s", fncs_to_install)
+    if module is None:
+        LOG.info("No module for function <%s>", fnc)
+    else:
+        LOG.info("running module for function <%s>", fnc)
+
+
+    if openstackscript is None:
+        LOG.info("No openstackscript for function <%s>", fnc)
+    else:
+        LOG.info("running openstackscript for function <%s>", fnc)
+
+        scriptFile = open_and_parse_script_file(openstackscript)
+        outp = run_script_locally(scriptFile)
+        print_script_output(outp, openstackscript)
+
+
+
+    if machinescript is None:
+        LOG.info("No machinescript for function <%s>", fnc)
+    else:
+        LOG.info("running machinescript for function <%s>", fnc)
+
+    if testsuite is None:
+        LOG.info("No testsuite for function <%s>", fnc)
+    else:
+        LOG.info("running testsuite for function <%s>", fnc)
+
+
+
+#for fnc_d in fncs_to_install:
+    
+    ##install_machine(fnc_d)
+    ##def install_machine(fnc_d):
+    #if True:
+        #pass
+    
+
+    ##install(fnc_d)
+    ##def install(fnc_d):
+    #if True: 
+        #name = fnc_d['name']
+        #sc_script = fnc_d['openstackinstall_script']
+        #ma_script = fnc_d['machineinstall_script']
+        #module = fnc_d['module']
+        #suite = fnc_d['test']
+
+        #LOG.info("installing %s", name)
+        
+    
+        #with sc_script.open() as f:
+            #script = f.read()
+         
+        #scripttxt = template_engine(script, config)
+        
+        #scriptFile = NamedTemporaryFile(delete=True)
+        #with open(scriptFile.name, 'w') as f:
+            #f.write("#!/bin/bash\n")
+            #f.write(scripttxt)
+
+        #os.chmod(scriptFile.name, 0777)
+        #scriptFile.file.close()
+
+        #print "------------------------------"
+        #print " running the script file:"
+        #print "------------------------------"
+        #print(script)
+        #print "------------------------------"
+        #print "output of script:"
+        #print "------------------------------"
+        #a = subprocess.check_call(scriptFile.name)
+        #print "------------------------------"
+        
+    
+    
+#LOG.info("Testing installation")
+
+#for fnc_d in fncs_to_install:
+
+    #name = fnc_d['name']
+    #ma_script = fnc_d['machineinstall_script']
+    #sc_script = fnc_d['openstackinstall_script']
+    #module = fnc_d['module']
+    #suite = fnc_d['test']
+
+#LOG.info("Installing functions: %s", fncs_to_install)
 
 
 
