@@ -101,8 +101,13 @@ class SimpleBashYamlTemplateEngine(object):
             return script
         
         
+        ### ADD MORE COMMANDS HERE ############################################
+        
+        
         cmds = {}
         cmds['include'] = cmd_include
+        
+        ### ... and here a link ###############################################
         
         return cmds
         
