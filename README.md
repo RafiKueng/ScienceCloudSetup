@@ -9,6 +9,7 @@ the magic happend in `cd setup_config`
 
 then run `install.py [functions]`
 where `functions` is a list of functions to setup, with according machines.
+or it can be a "functiongroup", which is simply a shortcut name for a list of functions. Consult `config.yaml` at the bottom for definitions.
 
 These `functions` are defined in the `config.yaml` file and have according install scripts in the according foders.
 
@@ -29,5 +30,53 @@ NETWORKNAME="${networks.internal.name}"
 echo $NETWORKNAME
 ```
 for details see `helper_modules/template_engine.py`.
+
+
+
+--------
+# TODO NEXT
+
+- complete install.py: run function machine script remotely
+- complete install.py: run function module script 
+- complete install.py: run function testsuite script 
+- setup the actual machines
+
+--------
+
+
+## Functions
+
+### init
+runs on: none
+
+basic function that initializes the openstack environment...
+
+sets up:
+- internal network & subnetwork
+
+still todo:
+- other networks?
+- routers? (maybe with outwards facing function)
+- install ssk keypair
+- security groups
+
+
+
+### basiccontroller
+runs on: saturn
+
+this is the main instance that:
+- functions as ssh gateway to the internal network to all other machines
+
+still todo:
+- offers monitoring functionality from net-uzh to net-int
+- fires up and tears down worker nodes
+
+
+
+## Machines
+### saturn
+1 core low ram, machine only used for monitoring
+
 
 

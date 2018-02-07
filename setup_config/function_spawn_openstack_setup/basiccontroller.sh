@@ -1,11 +1,8 @@
 
+#
+# config steps in openstack required to make this function run
+#
+# usually this is quite empty here...
+#
 
-NAME=${functions.basiccontroller.host}
-
-echo "inside basiccontroller.sh yay ${functions.webserver.networks.ext.ip}"
-openstack server list
-
-NETWINT=`openstack network list -f value | grep net_internal | cut --delimiter " " --fields 1`
-SNETINT=`openstack subnet list -f value | grep net_internal | cut --delimiter " " --fields 1`
-
-echo $NETWINT
+echo "inside basiccontroller.sh yay "

@@ -4,6 +4,7 @@
 import sys
 import os
 import pathlib2
+import textwrap
 
 import re
 import pprint as PPrint
@@ -101,11 +102,27 @@ class SimpleBashYamlTemplateEngine(object):
             return script
         
         
+        def cmd_insert_funcs(args):
+            s = textwrap.dedent("""\
+                # /--- IMPORT
+                #   standart functions defined in the template_engine
+                
+                # get the id of any openstack "item"
+                function get_openstack_id_of {
+                    openstack $1 list -f value | grep "$2" | cut --delimiter " " --fields 1
+                }
+                
+                # \--- END of stnadart function import
+                """)
+            return s
+        
+        
         ### ADD MORE COMMANDS HERE ############################################
         
         
         cmds = {}
         cmds['include'] = cmd_include
+        cmds['insert_standard_functions'] = cmd_insert_funcs
         
         ### ... and here a link ###############################################
         

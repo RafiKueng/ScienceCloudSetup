@@ -30,4 +30,4 @@ EOT
 apt install -y \
     curl \
 
-reboot
+# reboot # don't do a reboot!!

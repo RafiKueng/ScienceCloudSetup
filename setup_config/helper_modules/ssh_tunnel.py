@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 import subprocess
 import logging
 
@@ -14,7 +15,8 @@ class SshTunnel(object):
                  targethost='localhost',
                  targetport=22,
                  proxyhost='root@localhost',
-                 sockfile='/tmp/ssh_tunnel.sock'):
+                 sockfile='/tmp/ssh_tunnel.sock',
+                 **kwargs):
         """sets up an ssh tunnel, ala
     
         subprocess.call("ssh -f -N -M -S /tmp/SpLInst_sshtun.sock -L 10022:172.23.24.117:22 rafik@taurus.physik.uzh.ch", shell=True)

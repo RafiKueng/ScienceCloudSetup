@@ -29,6 +29,7 @@ import logging
 import argparse
 from datetime import datetime
 import traceback
+import time
 
 import pathlib2
 import yaml
@@ -42,7 +43,7 @@ import subprocess
 import fabric
 import fabric.api as fab
 
-from helper_modules import template_engine, ssh_tunnel
+from helper_modules import template_engine, ssh_tunnel, buzzer_generator
 
 reload(logging)
 #LOG = logging.getLogger(__appname__)
@@ -51,6 +52,7 @@ LOG = logging.getLogger("SpL")
 
 reload(template_engine)
 
+DBG = {} # debug variable to save stuff in from functions using 'global'
 
 #def main(args):
     #config = yaml.safe_load(open("config.yml"))
@@ -98,29 +100,63 @@ def run_script_remotly(scriptFile):
     scriptFile -- pathlib2.Path to scriptfile
     """
 
-    tunset = config['conntection_settings']
+    tunset = config['connection_settings']
     chost = tunset['controller']
     net =   tunset['network']
     tunset['targethost'] = get_assigned_machine_ip(chost, net)
+    
+    global DBG
+    DBG['tunset'] = tunset
+    DBG['scriptFile'] = scriptFile
     
     with ssh_tunnel.SshTunnel(**tunset) as tun:
             #localport=10022,
             #targethost="172.23.24.117", targetport=22,
             #proxyhost="rafik@taurus.physik.uzh.ch") as tun:
         
-        fab.env.host_string = "debian@10.0.1.1"
         fab.env.gateway = "debian@localhost:10022"
-
-        fab.put(scriptFile.name, scriptFile.name, mode="0755")
+        fab.env.host_string = "debian@10.0.0.1"
+        fab.env.disable_known_hosts = True
         
-        # fab.run("hostname")
+        hn = fab.run("hostname")
+        LOG.info("fab runs on %s", hn)
+        
+        fab.put(scriptFile.name, scriptFile.name, mode="0755")
+            
+        
+        
         outp = fab.sudo(scriptFile.name)
-        fab.run("rm %s" % scriptFile.name )
+        # fab.run("rm %s" % scriptFile.name ) # dont yet do the cleanup..
         
     return outp
 
 
 
+
+def run_command_remotely_as_sudo(hostname, cmd):
+
+    tunset = config['connection_settings']
+    chost = tunset['controller']
+    net =   tunset['network']
+    tunset['targethost'] = get_assigned_machine_ip(chost, net)
+    
+    with ssh_tunnel.SshTunnel(**tunset) as tun:
+        
+        fab.env.gateway = "debian@localhost:10022"
+        fab.env.host_string = "debian@10.0.0.1"
+        fab.env.disable_known_hosts = True
+        
+        with fab.settings(ok_ret_codes=[0, -1]):
+            fab.sudo(cmd)
+        
+
+
+def reboot_machine(hostname):
+    LOG.info("rebooting machine %s", hostname)
+    
+    run_command_remotely_as_sudo(hostname,'reboot')
+
+    
 
 def open_and_parse_script_file(scriptpath):
     """Opens a script file, parses it,
@@ -160,6 +196,57 @@ def open_and_parse_script_file(scriptpath):
     return scriptFile
 
 
+def waitUntilPoweredUp(hostname=""):
+    
+    waitTime= 60 # in secs
+    deltat = 2
+
+    LOG.info("waiting for %s sec for the machine %s to come up", waitTime, hostname)
+    start = time.time()
+    
+    for i in buzzer_generator.buzzergen(deltat):
+        if time.time() - start > waitTime:
+            LOG.warn("machine %s didn't come up", hostname)
+            return False
+        
+        status = get_machine_status(hostname)
+        
+        if status=="ACTIVE":
+            LOG.info("machine now up. we give it like 10 sec to boot")
+            time.sleep(10)
+            return True
+        else:
+            LOG.info("status: %s", status)
+            
+    
+        
+
+        
+
+
+
+def get_machine_status(hostname=""):
+    """returns the status of a machine
+    """
+    try:
+        out = subprocess.check_output('openstack server list -f csv | grep %s' % hostname, shell=True)
+    except subprocess.CalledProcessError:
+        LOG.critical("Could not get the ip of <%s> in the net <%s>, aborting (is the openstack psw set / rc file sourced?)", hostname, network)
+        sys.exit(1)
+        
+    return out.split(',')[2].strip('"')
+
+def check_if_machine_active(hostname=""):
+    """Checks if an openstack host ist active
+    """
+    try:
+        out = subprocess.check_output('openstack server list -f csv | grep %s' % hostname, shell=True)
+    except subprocess.CalledProcessError:
+        LOG.critical("Could not get the ip of <%s> in the net <%s>, aborting (is the openstack psw set / rc file sourced?)", hostname, network)
+        sys.exit(1)
+        
+    return out.split(',')[2].strip('"') == "ACTIVE"
+    
 
 def get_assigned_machine_ip(hostname="", network="uzh-only"):
     """Checks the openstack instance list and returns
@@ -172,9 +259,16 @@ def get_assigned_machine_ip(hostname="", network="uzh-only"):
         LOG.critical("Could not get the ip of <%s> in the net <%s>, aborting (is the openstack psw set / rc file sourced?)", hostname, network)
         sys.exit(1)
     
-    nets = out.split(',')[3].strip('"')
-    net = [_.strip() for _ in nets.split(';') if _.strip().startswith(network)][0]
-    ip = net.split('=')[1]
+    global DBG
+    DBG['out'] = out
+    
+    try:
+        nets = out.split(',')[3].strip('"')
+        net = [_.strip() for _ in nets.split(';') if _.strip().startswith(network)][0]
+        ip = net.split('=')[1]
+    except:
+        LOG.warn("no ip found")
+        return None
     
     
     return ip
@@ -299,7 +393,7 @@ D = {
     'funcs_order' : []
 }
 
-# second check if functions are actually awailable
+# second check if functions are actually available
 for fn in fncs_to_check:
     if not fn in config['functions'].keys():
         LOG.warning("Function <%s> not defined in config.yaml", fn)
@@ -399,7 +493,7 @@ for hostname in D['hosts_order']:
             outp = run_script_locally(scriptFile)
             print_script_output(outp, openstackscript)
             
-            
+            waitUntilPoweredUp(hostname) # wait a few seconds for the machines to boot up!
 
 
     # install_machine_(host)
@@ -419,7 +513,11 @@ for hostname in D['hosts_order']:
             scriptFile = open_and_parse_script_file(machinescript)
             outp = run_script_remotly(scriptFile)
             print_script_output(outp, machinescript)
-           
+            
+            reboot_machine(hostname)
+            waitUntilPoweredUp(hostname)
+
+
 
 
 LOG.info("-"*80)
@@ -441,6 +539,7 @@ for fnc in D['funcs_order']:
         LOG.info("No module for function <%s>", fnc)
     else:
         LOG.info("running module for function <%s>", fnc)
+        LOG.warn("NOT YET IMPLEMENTED")
 
 
     if openstackscript is None:
@@ -458,11 +557,13 @@ for fnc in D['funcs_order']:
         LOG.info("No machinescript for function <%s>", fnc)
     else:
         LOG.info("running machinescript for function <%s>", fnc)
+        LOG.warn("NOT YET IMPLEMENTED")
 
     if testsuite is None:
         LOG.info("No testsuite for function <%s>", fnc)
     else:
         LOG.info("running testsuite for function <%s>", fnc)
+        LOG.warn("NOT YET IMPLEMENTED")
 
 
 

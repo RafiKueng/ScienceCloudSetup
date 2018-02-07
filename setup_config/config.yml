@@ -7,7 +7,7 @@
 #
 # we expect ssh autologin using keyfiles!
 #
-conntection_settings:
+connection_settings:
     localport:      10022
     targetport:     22
     proxyhost:      rafik@taurus.physik.uzh.ch
@@ -17,7 +17,7 @@ conntection_settings:
     controller:     saturn
     network:        "uzh-only"
     #targethost:     172.23.24.117
-    
+
 
 
 networks:
@@ -29,16 +29,22 @@ networks:
         sn_pfx:         /16
         pool_start:     10.0.254.1
         pool_end:       10.0.254.254
-    university:     &netUzh
-        name:           net_uzh
+    #university:     &netUzh
+        #name:           net_uzh
+        #short:          UZH
+        #iprange:        10.1.0.0
+        #subnet:         255.255.0.0
+        #sn_pfx:         /16
+    uzhonly:        &netUzhOnly   # this is predefined
+        name:           uzh-only
         short:          UZH
-        iprange:        10.1.0.0
+        iprange:        172.23.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
     external:       &netExternal
         name:           net_ext
         short:          EXT
-        iprange:        10.9.0.0
+        iprange:        10.99.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
 
@@ -52,7 +58,7 @@ networks:
 servers:
     
     # default settings
-    image:      "Debian 9.2"
+    image:      "Debian 9.3"
     sshkeyname: "taurus"
     
     # dummy machine that doesn't exist and does nothing
@@ -70,8 +76,8 @@ servers:
                 <<: *netInternal
                 ip: 10.0.0.1
             uzh:
-                <<: *netUzh
-                ip: 10.1.0.1
+                <<: *netUzhOnly
+
 
     # webserver / web facing node
     mimas:    &mimas
@@ -121,64 +127,64 @@ functions:
     basiccontroller:
         <<:     *saturn
 
-    flower:
-        <<:     *saturn
-        port:   8081
+    #flower:
+        #<<:     *saturn
+        #port:   8081
 
-    status-rabbitmq:
-        <<:     *saturn
-        port:   8082
+    #status-rabbitmq:
+        #<<:     *saturn
+        #port:   8082
 
-    redirect-django-admin:
-        <<:     *saturn
-        port:   8083
+    #redirect-django-admin:
+        #<<:     *saturn
+        #port:   8083
 
-    redirect-couchdb-futon:
-        <<:     *saturn
-        port:   8084
-
-
-
-    loadbalancer:
-        <<:     *mimas
-        port:   80
-
-    couchdbserver:
-        <<:     *titan
-        port:   80
-
-    mariadbserver:
-        <<:     *titan
-        port:   80
+    #redirect-couchdb-futon:
+        #<<:     *saturn
+        #port:   8084
 
 
-    webserver:
-        <<:     *mimas
-        port:   80
 
-    staticserver:
-        <<:     *titan
-        port:   80
+    #loadbalancer:
+        #<<:     *mimas
+        #port:   80
 
-    mediaserver:
-        <<:     *titan
-        port:   80
+    #couchdbserver:
+        #<<:     *titan
+        #port:   80
 
-
-    rabbitmqbroker:
-        <<:     *titan
-        port:   80
+    #mariadbserver:
+        #<<:     *titan
+        #port:   80
 
 
-    appserver:
-        <<:     *titan
-        port:   80
+    #webserver:
+        #<<:     *mimas
+        #port:   80
+
+    #staticserver:
+        #<<:     *titan
+        #port:   80
+
+    #mediaserver:
+        #<<:     *titan
+        #port:   80
+
+
+    #rabbitmqbroker:
+        #<<:     *titan
+        #port:   80
+
+
+    #appserver:
+        #<<:     *titan
+        #port:   80
         
 
         
-    worker:
-        <<:     *moon
-        port:   80
+    #worker:
+        #<<:     *moon
+        #port:   80
 
 
 #
@@ -186,8 +192,10 @@ functions:
 #
 functiongroups:
     controller:
-        - flower
-        - status-rabbitmq
-        - redirect-django-admin
-        - redirect-couchdb-futon
+        - init
+        - basiccontroller
+        #- flower
+        #- status-rabbitmq
+        #- redirect-django-admin
+        #- redirect-couchdb-futon
 

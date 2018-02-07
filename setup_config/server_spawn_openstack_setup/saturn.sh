@@ -1,9 +1,6 @@
 #!/bin/bash
 
-
-function get_openstack_id_of {
-    openstack $1 list -f value | grep "$2" | cut --delimiter " " --fields 1
-}
+${!insert_standard_functions}
 
 
 HOSTNAME="${servers.saturn.host}"
@@ -16,10 +13,12 @@ NETWORK="${servers.saturn.networks.int.name}"
 SHORTNWNAME="${servers.saturn.networks.int.short}"
 IP="${servers.saturn.networks.int.ip}"
 
+NETWORKUZH="${servers.saturn.networks.uzh.name}"
+
 SSHKEYNAME="${servers.sshkeyname}"
 
 
-
+### check if server already exists 
 
 HOSTID=`get_openstack_id_of server ${HOSTNAME}`
 
@@ -40,7 +39,7 @@ IMAGEID=`get_openstack_id_of image "${IMAGE}"`
 NETID=`get_openstack_id_of network "${NETWORK}"`
 SUBNETID=`get_openstack_id_of subnet "${NETID}"`
 
-NETPORT=
+
 
 ADDR=(${IP//./ })
 IP0=${ADDR[0]}
@@ -54,18 +53,33 @@ IP03=$(printf "%03d" $IP3)
 
 PORTNAME="port-${IP01}.${IP02}.${IP03} ${HOSTNAME} @${SHORTNWNAME}"
 
-echo openstack port create                               \
-    --network ${NETID}                              \
-    --fixed-ip subnet=${SUBNETID},ip-address=${IP}  \
-    "${PORTNAME}"
 
-PORTID=`get_openstack_id_of port "${IP}"`
+PORTID=`get_openstack_id_of port "${PORTNAME}"`
+if [ ! -z "$PORTID" ]; then
+    echo "network port on INT already exists, skipping creation of port"
+else
+    echo "network port on INT does not yet exists, we will set it up"
+    openstack port create                               \
+        --network ${NETID}                              \
+        --fixed-ip subnet=${SUBNETID},ip-address=${IP}  \
+        "${PORTNAME}"
+    PORTID=`get_openstack_id_of port "${IP}"`
+fi
 
-echo openstack server create        \
+
+NETWIDUZH=`get_openstack_id_of network "${NETWORKUZH}"`
+if [ -z "$NETWIDUZH" ]; then
+    echo "cant find uzh-only network, aborting"
+    exit 1
+fi
+
+
+openstack server create        \
     --image $IMAGEID                \
     --flavor $FLAVORID              \
     --security-group $SECGRPID      \
     --key-name "${SSHKEYNAME}"      \
+    --nic net-id=$NETWIDUZH         \
     --nic port-id=$PORTID           \
     "${HOSTNAME}"
    

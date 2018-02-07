@@ -28,3 +28,4 @@ def get_openstack_creds():
     d['project_id'] = os.environ['OS_TENANT_NAME']
     return d
 
+
