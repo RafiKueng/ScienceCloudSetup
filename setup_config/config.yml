@@ -27,26 +27,35 @@ networks:
         iprange:        10.0.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
-        pool_start:     10.0.254.1
-        pool_end:       10.0.254.254
-    #university:     &netUzh
-        #name:           net_uzh
-        #short:          UZH
-        #iprange:        10.1.0.0
-        #subnet:         255.255.0.0
-        #sn_pfx:         /16
-    uzhonly:        &netUzhOnly   # this is predefined
-        name:           uzh-only
-        short:          UZH
-        iprange:        172.23.0.0
-        subnet:         255.255.0.0
-        sn_pfx:         /16
+        gateway:        None
+        pool:
+            start:     10.0.254.1
+            end:       10.0.254.254
+    
     external:       &netExternal
         name:           net_ext
         short:          EXT
-        iprange:        10.99.0.0
+        iprange:        10.1.0.0
         subnet:         255.255.0.0
         sn_pfx:         /16
+        gateway:        10.1.0.1
+        pool:
+            start:     10.1.254.1
+            end:       10.1.254.254
+
+    uzhonly:        &netUzhOnly   # this is predefined
+        name:           uzh-only  # this name is fixed
+        short:          UZH
+#        iprange:        172.23.0.0
+#        subnet:         255.255.0.0
+#        sn_pfx:         /16
+
+    public:         &netPublic  # this is predefined
+        name:           public    # this name is fixed
+        short:          PUB
+#        iprange:        0.0.0.0
+#        subnet:         255.0.0.0
+#        sn_pfx:         /16
 
 
 # servers = actual vm
@@ -82,31 +91,34 @@ servers:
     # webserver / web facing node
     mimas:    &mimas
         host:   mimas
+        flavor: "2cpu-2ram-server"
+        secgroup: default
         networks:
             int:
                 <<: *netInternal
                 ip: 10.0.1.1
             ext:
                 <<: *netExternal
-                ip: 10.2.1.1
+                ip: 10.1.1.1
 
-    # multi server node
-    titan:    &titan 
-        host:   titan
-        networks:
-            int:
-                <<: *netInternal
-                ip: 10.0.2.1
+    ## multi server node
+    #titan:    &titan 
+        #host:   titan
+        #networks:
+            #int:
+                #<<: *netInternal
+                #ip: 10.0.2.1
 
-    # worker nodes
-    moon:  &moon
-        host:     'moon-%02s'
-        n_max:    3
-        n_min:    3 # this is not yet implemented!
-        networks:
-            int:
-                <<: *netInternal
-                ip: 10.0.99.%i
+
+    ## worker nodes
+    #moon:  &moon
+        #host:     'moon-%02s'
+        #n_max:    3
+        #n_min:    3 # this is not yet implemented!
+        #networks:
+            #int:
+                #<<: *netInternal
+                #ip: 10.0.99.%i
                 
 
 
@@ -145,9 +157,9 @@ functions:
 
 
 
-    #loadbalancer:
-        #<<:     *mimas
-        #port:   80
+    loadbalancer:
+        <<:     *mimas
+        port:   80
 
     #couchdbserver:
         #<<:     *titan
@@ -198,4 +210,7 @@ functiongroups:
         #- status-rabbitmq
         #- redirect-django-admin
         #- redirect-couchdb-futon
+        
+    proxyhost:
+        - loadbalancer
 

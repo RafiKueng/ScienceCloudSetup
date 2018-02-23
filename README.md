@@ -73,10 +73,25 @@ still todo:
 - fires up and tears down worker nodes
 
 
+### loadbalancer
+runs on: mimas
+
+function:
+- gateway machine that redirects requests if required and answers static files.
+
+still todo:
+
+
+
+
 
 ## Machines
+
 ### saturn
 1 core low ram, machine only used for monitoring
 
+
+### mimas
+2cpu-2ram-server, gateway proxy machine
 
 
