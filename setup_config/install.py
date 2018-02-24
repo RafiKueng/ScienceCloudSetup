@@ -93,16 +93,17 @@ def run_script_locally(scriptFile):
     return outp
 
 
-def run_script_remotly(scriptFile):
+def run_script_remotly(scriptFile, user='root', host='10.0.0.1'):
     """remotly runs a script file through the SshTunnel
     using fab
     
     scriptFile -- pathlib2.Path to scriptfile
     """
-
+    LOG.debug("running script file remotely")
+    
     tunset = config['connection_settings']
-    chost = tunset['controller']
-    net =   tunset['network']
+    chost = tunset['controller_host']
+    net =   tunset['controller_netw']
     tunset['targethost'] = get_assigned_machine_ip(chost, net)
     
     global DBG
@@ -115,7 +116,9 @@ def run_script_remotly(scriptFile):
             #proxyhost="rafik@taurus.physik.uzh.ch") as tun:
         
         fab.env.gateway = "debian@localhost:10022"
-        fab.env.host_string = "debian@10.0.0.1"
+        fab.env.user = user
+        fab.env.host = host
+        fab.env.host_string = "%s@%s" % (user, host)
         fab.env.disable_known_hosts = True
         
         hn = fab.run("hostname")
@@ -133,17 +136,19 @@ def run_script_remotly(scriptFile):
 
 
 
-def run_command_remotely_as_sudo(hostname, cmd):
+def run_command_remotely_as_sudo(hostname, cmd, user='root', host='10.0.0.1'):
 
     tunset = config['connection_settings']
-    chost = tunset['controller']
-    net =   tunset['network']
+    chost = tunset['controller_host']
+    net =   tunset['controller_netw']
     tunset['targethost'] = get_assigned_machine_ip(chost, net)
     
     with ssh_tunnel.SshTunnel(**tunset) as tun:
         
         fab.env.gateway = "debian@localhost:10022"
-        fab.env.host_string = "debian@10.0.0.1"
+        fab.env.user = user
+        fab.env.host = host
+        fab.env.host_string = "%s@%s" % (user, host)
         fab.env.disable_known_hosts = True
         
         with fab.settings(ok_ret_codes=[0, -1]):
@@ -151,10 +156,10 @@ def run_command_remotely_as_sudo(hostname, cmd):
         
 
 
-def reboot_machine(hostname):
+def reboot_machine(hostname, user, host):
     LOG.info("rebooting machine %s", hostname)
     
-    run_command_remotely_as_sudo(hostname,'reboot')
+    run_command_remotely_as_sudo(hostname,'reboot', user, host)
 
     
 
@@ -503,6 +508,10 @@ for hostname in D['hosts_order']:
         hostname = host['name']
         # openstackscript = host['openstack']
         machinescript   = host['machine']
+        
+        user = config['connection_settings']['user']
+        netw = config['connection_settings']['target_netw']
+        hostip = get_assigned_machine_ip(hostname, netw)
 
         if machinescript is None:
             LOG.info("no machinescript for host <%s>", hostname)
@@ -511,10 +520,10 @@ for hostname in D['hosts_order']:
             LOG.info("setting up host <%s> on the machine", hostname)
             
             scriptFile = open_and_parse_script_file(machinescript)
-            outp = run_script_remotly(scriptFile)
+            outp = run_script_remotly(scriptFile, user, hostip)
             print_script_output(outp, machinescript)
             
-            reboot_machine(hostname)
+            reboot_machine(hostname, user, hostip)
             waitUntilPoweredUp(hostname)
 
 
@@ -553,11 +562,21 @@ for fnc in D['funcs_order']:
 
 
 
+    user = config['connection_settings']['user']
+    netw = config['connection_settings']['target_netw']
+    hostip = get_assigned_machine_ip(hostname, netw)
+
     if machinescript is None:
         LOG.info("No machinescript for function <%s>", fnc)
     else:
         LOG.info("running machinescript for function <%s>", fnc)
-        LOG.warn("NOT YET IMPLEMENTED")
+        scriptFile = open_and_parse_script_file(machinescript)
+        outp = run_script_remotly(scriptFile, user, hostip)
+        print_script_output(outp, machinescript)
+        
+        reboot_machine(hostname, user, hostip)
+        waitUntilPoweredUp(hostname)
+
 
     if testsuite is None:
         LOG.info("No testsuite for function <%s>", fnc)

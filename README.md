@@ -31,17 +31,34 @@ echo $NETWORKNAME
 ```
 for details see `helper_modules/template_engine.py`.
 
+--------
+# BUGS
+
+## ssh login?!
+first setup the constroller node, then note its ssh key in the config as sshkey3!!!
+
 
 
 --------
 # TODO NEXT
 
-- complete install.py: run function machine script remotely
 - complete install.py: run function module script 
 - complete install.py: run function testsuite script 
 - setup the actual machines
 
+- fix bug of initial setup of controller node failling because of missing ssh keys
+
 --------
+
+--------
+## Howto
+
+- source pyenv/bin/activate
+- source openrc_v2.sh
+- install controller
+- get ssh pub key and put it into config
+- install other components
+
 
 
 ## Functions

@@ -14,10 +14,14 @@ connection_settings:
     # enter here the name of the controller node,
     # and the (openstack) network on which it can be
     # reached from the proxy machine/host 
-    controller:     saturn
-    network:        "uzh-only"
-    #targethost:     172.23.24.117
-
+    controller_host: saturn
+    controller_netw: uzh-only
+    # where and how can we reach the target machine
+    user:           debian
+    target_netw:    net_int
+    sshkey1:        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCipG5ahA0FX+mF7HyzaPaxLVsUY3ImX2N1zcoEhcSJXqYthkF/Rp+Oh2vn6kd+M+gAXtg+XGglzqBWgTf5LRbPc+FZAaZSVo4JVnmxCI5hwdwm0KiBvdU+tbgRAtqaO9yn16lfd6vp/WVlQfjRVc9TpziZboj9E1h/6Tc2M01Ctgd7D1dsR+VM/p8n+1xQWvUZiNjEQRU6nwx+eyhZt+Gcm5ZzwpSXAkX30NKkjGQyrOwpG0KVJvtdf3oiMuajbLPFj4ZgaUF6NSrjX9q1iBjyrCi9G9sWRpIMlFpo8sOVntZSf5zxaIHNQ8AE0xlqiTWAaYTpEGceFoN+2JOcGhU/ rafi.kueng@rk-main"
+    sshkey2:        "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA05RsJ0sPJq0xAN1mUh0K/cx7ru2lFppPhN9uT1YbejPa6g9PdXxRDnVAcvI87uP3unzHv8KcclliM58Hu8FKDaJ2XgbuIihR6XJRgUgVe7C5hI2pLmkvSRP+TtV892o/4uTRnX3eUxsg89bCUDagEDmFV0+azv4QstfkXdHZQMiegSBIQa6+a7ZeroUgYxKrd0AGkyLeVr2rkyNEMHCX39PGi4SwnmAgrGX2rFSw2E3c+J4I5zzlfu9GTHsXxcJhNgn+eY4WWOAHrAFXnm8rySPqVEExQwYmqQXLewEKEti/mY3Gay6Riewlx5N874JkYX9KhyWXhIsUPGlkgxhUzQ== rafi.kueng@taurus"
+    sshkey3:        "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDaeLqq8h7GBc6OveNnIH3rmP0xECIbtxoA4XkiOqUFp35lffQ8P7EHg5AJ4ayMeKyaZoaXXv8VzrBgoKir7U6+p+wIHbZkejHmcQ9+Nuree/zAdk7ptbtg4whLGSO1BG2t0SX2m0icA+47W75vLsbPqCsZtHni/UCGVA7u5euiqmrTnHGcLEUxTT1EqZ8uTDe30Wb3MMPJ8AHIpLtsUCdVK/ctWjzgPhQD0UIhGmpWlsn6c5sMe3pDCIahg0KZJi1PZMaZ/CMYR1tAu6b2AcIZrZ07XWP2oIobt+FS6TLtLj9q4mW+xYSMH/3/1gzyr50VvcpvTir2YXUtD8LHnzsL debian@saturn"
 
 
 networks:
@@ -57,6 +61,19 @@ networks:
 #        subnet:         255.0.0.0
 #        sn_pfx:         /16
 
+
+#
+# routers router FROM an external net TO an internal one
+#
+routers:
+    router_ext:
+        name:       router_ext
+        fromNet:
+            <<:     *netPublic
+        toNet:
+            <<:     *netExternal
+
+            
 
 # servers = actual vm
 # sometimes refered as hosts in sources
