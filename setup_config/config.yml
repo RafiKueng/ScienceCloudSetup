@@ -197,7 +197,8 @@ functions:
     splapp:
         <<:     *titan
         #port:   80
-
+        appdir: '/srv/spl'
+        
         
     #mariadbserver:
         #<<:     *titan
