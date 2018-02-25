@@ -194,6 +194,11 @@ functions:
         #guestpsw: guest1
 
 
+    splapp:
+        <<:     *titan
+        #port:   80
+
+        
     #mariadbserver:
         #<<:     *titan
         #port:   80
@@ -214,9 +219,6 @@ functions:
 
 
 
-    #appserver:
-        #<<:     *titan
-        #port:   80
         
 
         

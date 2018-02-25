@@ -55,4 +55,5 @@ apt install -y \
     apt-transport-https \
     curl \
     rsync \
+    git \
 
