@@ -19,6 +19,20 @@ else
     echo "ssh key already created"
 fi
 
+echo "--- disable known hosts for internal apps -------------------------------"
+# beause otherwise every respanw promps errors...
+
+cat <<EOT > /home/debian/.ssh/config
+# created by _all.sh server spawn machine script
+Host 10.0.*
+   StrictHostKeyChecking no
+   UserKnownHostsFile=/dev/null
+
+EOT
+
+
+
+
 echo "--- enable unattended uppgrades -----------------------------------------"
 # enable unattended upgrades
 # https://wiki.debian.org/UnattendedUpgrades
@@ -38,5 +52,7 @@ dpkg-reconfigure --frontend=noninteractive -plow unattended-upgrades
 
 # # install some tools
 apt install -y \
+    apt-transport-https \
     curl \
+    rsync \
 

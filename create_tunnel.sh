@@ -7,5 +7,6 @@
 #
 
 echo "ctrl+c to exit. (DONT FORGET THE IP OF CONTROLLER NODE AS \$1)"
-ssh -N -M -S /tmp/SpLInst_sshtun2.sock -L 10023:$1:22 rafik@taurus.physik.uzh.ch 
+echo "use: ssh debian@localhost -p 10023" 
+ssh -Y -N -M -S /tmp/SpLInst_sshtun2.sock -L 10023:$1:22 rafik@taurus.physik.uzh.ch 
 

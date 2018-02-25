@@ -65,6 +65,15 @@ else
 fi
 
 
+# === create port on UZH network ==============================================
+# (for updates!)
+
+ID_net_uzh=`get_openstack_id_of network "${networks.uzhonly.name}"`
+if [ -z "$ID_net_uzh" ]; then
+    echo "cant find uzh-only network, aborting"
+    exit 1
+fi
+
 
 # === create the init script ==================================================
 userdata_tmpfile=$(mktemp)
@@ -90,6 +99,7 @@ openstack server create        \
     --flavor $ID_flavor             \
     --security-group $ID_secgrp     \
     --key-name "${SSH_keyname}"     \
+    --nic net-id=$ID_net_uzh        \
     --nic port-id=$ID_port_int      \
     --user-data=$userdata_tmpfile   \
     "${HOSTNAME}"

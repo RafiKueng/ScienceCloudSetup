@@ -182,7 +182,17 @@ functions:
 
     couchdbserver:
         <<:     *titan
-        port:   80
+        #port:   5984
+        datadir: '/srv/couchdb'
+
+    rabbitmq:
+        <<:     *titan
+        user:   rabbituser
+        #psw:    rabbitpsw
+        vhost:  swlabs
+        port:   5672
+        #guestpsw: guest1
+
 
     #mariadbserver:
         #<<:     *titan
@@ -202,9 +212,6 @@ functions:
         #port:   80
 
 
-    #rabbitmqbroker:
-        #<<:     *titan
-        #port:   80
 
 
     #appserver:

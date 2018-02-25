@@ -217,8 +217,8 @@ def waitUntilPoweredUp(hostname=""):
         status = get_machine_status(hostname)
         
         if status=="ACTIVE":
-            LOG.info("machine now up. we give it like 10 sec to boot")
-            time.sleep(10)
+            LOG.info("machine now up. we give it like 15 sec to boot")
+            time.sleep(15)
             return True
         else:
             LOG.info("status: %s", status)
@@ -369,6 +369,8 @@ if __name__ == '__main__':
         
 
 config = yaml.safe_load(open("config.yml"))
+SECRET = yaml.safe_load(open("secrets.yml"))
+config['SECRET'] = SECRET
 
 args = get_arguments()
 setup_logger(args)
