@@ -95,8 +95,18 @@ runs on: mimas
 
 function:
 - gateway machine that redirects requests if required and answers static files.
+- nginx
 
 still todo:
+- setup nginx 
+
+
+### appserver
+
+
+### couchdbserver
+
+
 
 
 
@@ -109,6 +119,8 @@ still todo:
 
 
 ### mimas
-2cpu-2ram-server, gateway proxy machine
+1cpu-1ram-server, gateway proxy machine
 
+### titan
+2cpu-8ram-hpc, hosts all relevant server services
 

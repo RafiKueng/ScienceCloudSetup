@@ -108,7 +108,7 @@ servers:
     # webserver / web facing node
     mimas:    &mimas
         host:   mimas
-        flavor: "2cpu-2ram-server"
+        flavor: "1cpu-4ram-hpc"
         secgroup: default
         networks:
             int:
@@ -118,13 +118,15 @@ servers:
                 <<: *netExternal
                 ip: 10.1.1.1
 
-    ## multi server node
-    #titan:    &titan 
-        #host:   titan
-        #networks:
-            #int:
-                #<<: *netInternal
-                #ip: 10.0.2.1
+    # multi server node
+    titan:    &titan 
+        host:   titan
+        flavor: "2cpu-8ram-hpc"
+        secgroup: default
+        networks:
+            int:
+                <<: *netInternal
+                ip: 10.0.2.1
 
 
     ## worker nodes
@@ -178,9 +180,9 @@ functions:
         <<:     *mimas
         port:   80
 
-    #couchdbserver:
-        #<<:     *titan
-        #port:   80
+    couchdbserver:
+        <<:     *titan
+        port:   80
 
     #mariadbserver:
         #<<:     *titan
