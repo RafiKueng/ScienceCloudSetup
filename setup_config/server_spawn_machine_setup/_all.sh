@@ -1,11 +1,15 @@
 # keep first line empty!!
 
 
+sed -i 's/# alias ll/alias ll/g' ~/.bashrc
+sed -i 's/# alias la/alias la/g' ~/.bashrc
+su - debian -c "sed -i 's/# alias ll/alias ll/g' ~/.bashrc"
+su - debian -c "sed -i 's/# alias la/alias la/g' ~/.bashrc"
 sed -i 's/#alias ll/alias ll/g' ~/.bashrc
 sed -i 's/#alias la/alias la/g' ~/.bashrc
-
 su - debian -c "sed -i 's/#alias ll/alias ll/g' ~/.bashrc"
 su - debian -c "sed -i 's/#alias la/alias la/g' ~/.bashrc"
+
 
 echo "--- upgrade -------------------------------------------------------------"
 apt update
