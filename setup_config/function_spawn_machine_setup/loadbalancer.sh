@@ -5,6 +5,7 @@
 # reminder: this runs as sudo
 
 
+
 apt install -y nginx
 
 mkdir -p /srv/_test
@@ -30,7 +31,8 @@ server {
     # location = /favicon.ico { access_log off; log_not_found off; }
     
     location /static/ {
-        root /srv/static_files/;
+        include proxy_params;
+        proxy_pass http://${functions.staticserver.networks.int.ip}:${functions.staticserver.port};
     }
 
     location / {
@@ -45,4 +47,6 @@ rm -f /etc/nginx/sites-enabled/default
 rm -f /etc/nginx/sites-enabled/spl
 ln -s ../sites-available/spl /etc/nginx/sites-enabled/spl
 
+
+# collect static files
 

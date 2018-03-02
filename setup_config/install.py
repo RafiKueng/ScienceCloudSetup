@@ -576,8 +576,8 @@ for fnc in D['funcs_order']:
         outp = run_script_remotly(scriptFile, user, hostip)
         print_script_output(outp, machinescript)
         
-        reboot_machine(hostname, user, hostip)
-        waitUntilPoweredUp(hostname)
+        #reboot_machine(hostname, user, hostip)
+        #waitUntilPoweredUp(hostname)
 
 
     if testsuite is None:

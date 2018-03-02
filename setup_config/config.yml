@@ -127,6 +127,8 @@ servers:
             int:
                 <<: *netInternal
                 ip: 10.0.2.1
+            uzh:
+                <<: *netUzhOnly
 
 
     ## worker nodes
@@ -179,6 +181,14 @@ functions:
     loadbalancer:
         <<:     *mimas
         port:   80
+
+
+    staticserver:
+        <<:     *mimas
+        port:   8001
+        staticdir: ''
+
+
         
 
     couchdbserver:
@@ -210,9 +220,6 @@ functions:
         #<<:     *mimas
         #port:   80
 
-    #staticserver:
-        #<<:     *titan
-        #port:   80
 
     #mediaserver:
         #<<:     *titan
@@ -244,3 +251,7 @@ functiongroups:
     proxyhost:
         - loadbalancer
 
+    mainsrv:
+        - couchdbserver
+        - rabbitmq
+        - splapp
