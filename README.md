@@ -36,17 +36,14 @@ for details see `helper_modules/template_engine.py`.
 
 ## ssh login?!
 first setup the constroller node, then note its ssh key in the config as sshkey3!!!
-
+the ssh keys of the controller node is hardcoded in some places.. DONT reset this machine if not really needed..
 
 
 --------
 # TODO NEXT
 
-- complete install.py: run function module script 
-- complete install.py: run function testsuite script 
-- setup the actual machines
+see setup_config/TODO.md for where to coninue
 
-- fix bug of initial setup of controller node failling because of missing ssh keys
 
 --------
 

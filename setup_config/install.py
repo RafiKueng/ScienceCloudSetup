@@ -10,7 +10,7 @@ ARGUMENTS
     -h, --help		show this help message and exit
     -v, --verbose		verbose output
 AUTHOR
-    Doug McGeehan <djmvfb@mst.edu>
+    Rafael Kueng <rafi.kueng@gmx.ch>
 LICENSE
     Specify this script's / package's license.
 """

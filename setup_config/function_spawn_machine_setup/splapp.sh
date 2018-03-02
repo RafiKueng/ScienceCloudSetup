@@ -72,8 +72,8 @@ DATABASES = {
 }
 
 COUCHDB_DATABASES = (
-    ('djangoapp.spaghetti', 'http://10.0.2.1:5984/spaghetti'),
-    ('djangoapp.lenses',    'http://10.0.2.1:5984/lenses'),
+    ('djangoapp.spaghetti', 'http://admin:8Mf8ND7Mm4NmnqYL@10.0.2.1:5984/spaghetti'),
+    ('djangoapp.lenses',    'http://admin:8Mf8ND7Mm4NmnqYL@10.0.2.1:5984/lenses'),
 )
 
 STATIC_ROOT = '/srv/spl/static'
@@ -141,6 +141,8 @@ PrivateTmp=true
 WantedBy=multi-user.target
 EOT
 
+
+systemctl daemon-reload
 systemctl start gunicorn
 systemctl enable gunicorn
 

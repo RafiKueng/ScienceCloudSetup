@@ -194,8 +194,8 @@ functions:
     couchdbserver:
         <<:     *titan
         #port:  5984
-        datadir:'/srv/couchdb'
-        user:   'spl'
+        datadir: '/srv/couchdb'
+        user:    'spl'
 
     rabbitmq:
         <<:     *titan
