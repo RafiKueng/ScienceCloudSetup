@@ -91,7 +91,8 @@ CELERY_RESULT_BACKEND = 'amqp://rabbituser:CmPszRRKQZGC7KGU@10.0.2.1:5672/swlabs
 
 EOT
 
-
+mkdir -p /srv/spl/media
+chmod -R 777 /srv/spl/media
 
 # collect the static files for staticserver
 cd "${PATH_full}/apps"
