@@ -30,11 +30,11 @@ server {
     
 
     location /static/ {
-        root /srv/spl/static/
+        root /srv/spl/static/;
     }
 
     location / {
-        root /srv/spl/static/
+        root /srv/spl/static/;
     }
 }
 
@@ -48,6 +48,16 @@ systemctl restart nginx
 
 # collect static files
 
-echo "please make sure to copy the files to $/srv/spl/static manually"
-read -p "confirm with keypress", DUMMY
+mkdir -p ${functions.staticserver.staticdir}
+chmod -R 777 ${functions.staticserver.staticdir}
 
+echo "please ssh into saturn and run a sync of the static files"
+
+echo "rsync -ahv \
+    debian@${functions.splapp.networks.int.ip}:${functions.staticserver.staticdir} \
+    /tmp/splstatic/"
+echo "rsync -rltgoDhv \
+    /tmp/splstatic/ \
+    debian@${functions.staticserver.networks.int.ip}:${functions.staticserver.staticdir}"
+
+read -p "confirm with keypress", DUMMY

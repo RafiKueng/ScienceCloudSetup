@@ -48,3 +48,9 @@ chown couchdb:couchdb /opt/couchdb/etc/default.d/20-databasedir.ini
 # systemctl reload couchdb
 systemctl restart couchdb
 
+
+# create databases
+curl -X PUT http://admin:8Mf8ND7Mm4NmnqYL@10.0.2.1:5984/spaghetti
+curl -X PUT http://admin:8Mf8ND7Mm4NmnqYL@10.0.2.1:5984/lenses
+
+

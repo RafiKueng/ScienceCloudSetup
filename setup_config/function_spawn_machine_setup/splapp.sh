@@ -47,8 +47,6 @@ virtualenv "${PATH_venv}"
 source "${PATH_venv}/bin/activate"
 pip install -r "${PATH_full}/py_requirements/appserver.txt"
 
-
-
 cat <<EOT > "${PATH_full}/apps/_app/machine_settings.py"
 # -*- coding: utf-8 -*-
 """
@@ -95,7 +93,16 @@ EOT
 
 
 
+# collect the static files for staticserver
+cd "${PATH_full}/apps"
+python manage.py collectstatic
 
+#python manage.py sync_prepare_couchdb
+#python manage.py sync_finish_couchdb
+#python manage.py sync_couchdb
+python manage.py syncdb
+
+# autostart the daemon
 
 mkdir -p /run/gunicorn
 chmod 777 /run/gunicorn
@@ -135,4 +142,6 @@ EOT
 
 systemctl start gunicorn
 systemctl enable gunicorn
+
+
 
